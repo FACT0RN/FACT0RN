@@ -54,7 +54,7 @@ AC_DEFUN([BITCOIN_QT_INIT],[
   dnl enable qt support
   AC_ARG_WITH([gui],
     [AS_HELP_STRING([--with-gui@<:@=no|qt5|auto@:>@],
-    [build bitcoin-qt GUI (default=auto)])],
+    [build bitcoin-qt GUI (default=no)])],
     [
      bitcoin_qt_want_version=$withval
      if test "x$bitcoin_qt_want_version" = xyes; then
@@ -62,7 +62,7 @@ AC_DEFUN([BITCOIN_QT_INIT],[
        bitcoin_qt_want_version=auto
      fi
     ],
-    [bitcoin_qt_want_version=auto])
+    [bitcoin_qt_want_version=no])
 
   AS_IF([test "x$with_gui" = xqt5_debug],
         [AS_CASE([$host],
