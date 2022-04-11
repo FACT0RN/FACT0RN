@@ -56,10 +56,10 @@ class GenerateBlockTest(BitcoinTestFramework):
 
         # Generate some extra mempool transactions to verify they don't get mined
         for _ in range(10):
-            node.sendtoaddress(address, 0.001)
+            node.sendtoaddress(address, 0.01)
 
         self.log.info('Generate block with txid')
-        txid = node.sendtoaddress(address, 1)
+        txid = node.sendtoaddress(address, 0.01 )
         hash = node.generateblock(address, [txid])['hash']
         block = node.getblock(hash, 1)
         assert_equal(len(block['tx']), 2)
@@ -67,7 +67,11 @@ class GenerateBlockTest(BitcoinTestFramework):
 
         self.log.info('Generate block with raw tx')
         utxos = node.listunspent(addresses=[address])
-        raw = node.createrawtransaction([{'txid':utxos[0]['txid'], 'vout':utxos[0]['vout']}],[{address:1}])
+        print("UTXOS")
+        for a in utxos:
+            print(a)
+
+        raw = node.createrawtransaction([{'txid':utxos[0]['txid'], 'vout':utxos[0]['vout']}],[{address: 0.0158 }])
         signed_raw = node.signrawtransactionwithwallet(raw)['hex']
         hash = node.generateblock(address, [signed_raw])['hash']
         block = node.getblock(hash, 1)
@@ -76,10 +80,10 @@ class GenerateBlockTest(BitcoinTestFramework):
         assert_equal(node.gettransaction(txid)['hex'], signed_raw)
 
         self.log.info('Fail to generate block with out of order txs')
-        raw1 = node.createrawtransaction([{'txid':txid, 'vout':0}],[{address:0.9999}])
+        raw1 = node.createrawtransaction([{'txid':txid, 'vout':200}],[{address:0.0158}])
         signed_raw1 = node.signrawtransactionwithwallet(raw1)['hex']
         txid1 = node.sendrawtransaction(signed_raw1)
-        raw2 = node.createrawtransaction([{'txid':txid1, 'vout':0}],[{address:0.999}])
+        raw2 = node.createrawtransaction([{'txid':txid1, 'vout':200}],[{address:0.01580953}])
         signed_raw2 = node.signrawtransactionwithwallet(raw2)['hex']
         assert_raises_rpc_error(-25, 'TestBlockValidity failed: bad-txns-inputs-missingorspent', node.generateblock, address, [signed_raw2, txid1])
 

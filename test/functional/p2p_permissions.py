@@ -110,7 +110,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
                     'txid': block_op_true['tx'][0],
                     'vout': 0,
                 }], outputs=[{
-                    ADDRESS_BCRT1_P2WSH_OP_TRUE: 5,
+                    ADDRESS_BCRT1_P2WSH_OP_TRUE: .01580953,
                 }]),
         )
         tx.wit.vtxinwit = [CTxInWitness()]

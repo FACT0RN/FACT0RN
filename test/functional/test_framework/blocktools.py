@@ -8,6 +8,7 @@ from binascii import a2b_hex
 import struct
 import time
 import unittest
+from math import floor
 
 from .address import (
     key_to_p2sh_p2wpkh,
@@ -50,7 +51,7 @@ MAX_BLOCK_SIGOPS = 20000
 MAX_BLOCK_SIGOPS_WEIGHT = MAX_BLOCK_SIGOPS * WITNESS_SCALE_FACTOR
 
 # Genesis block time (regtest)
-TIME_GENESIS_BLOCK = 1296688602
+TIME_GENESIS_BLOCK = 1645682572
 
 # Coinbase transaction outputs can only be spent after this number of new blocks (network rule)
 COINBASE_MATURITY = 100
@@ -61,7 +62,7 @@ WITNESS_COMMITMENT_HEADER = b"\xaa\x21\xa9\xed"
 NORMAL_GBT_REQUEST_PARAMS = {"rules": ["segwit"]}
 
 
-def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl=None, txlist=None):
+def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl=None, txlist=None, nBits = 32):
     """Create a block (with regtest difficulty)."""
     block = CBlock()
     if tmpl is None:
@@ -69,12 +70,10 @@ def create_block(hashprev=None, coinbase=None, ntime=None, *, version=None, tmpl
     block.nVersion = version or tmpl.get('version') or 1
     block.nTime = ntime or tmpl.get('curtime') or int(time.time() + 600)
     block.hashPrevBlock = hashprev or int(tmpl['previousblockhash'], 0x10)
-    if tmpl and not tmpl.get('bits') is None:
-        block.nBits = struct.unpack('>I', a2b_hex(tmpl['bits']))[0]
-    else:
-        block.nBits = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams
+    block.nBits = nBits  # difficulty retargeting is disabled in REGTEST chainparams
+    
     if coinbase is None:
-        coinbase = create_coinbase(height=tmpl['height'])
+        coinbase = create_coinbase(height=tmpl['height'], nBits = block.nBits )
     block.vtx.append(coinbase)
     if txlist:
         for tx in txlist:
@@ -118,7 +117,7 @@ def script_BIP34_coinbase_height(height):
     return CScript([CScriptNum(height)])
 
 
-def create_coinbase(height, pubkey=None, extra_output_script=None, fees=0, nValue=50):
+def create_coinbase(height, pubkey=None, extra_output_script=None, fees=0, nValue=None, nBits = 32):
     """Create a coinbase transaction.
 
     If pubkey is passed in, the coinbase output will be a P2PK output;
@@ -129,11 +128,17 @@ def create_coinbase(height, pubkey=None, extra_output_script=None, fees=0, nValu
     coinbase = CTransaction()
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_BIP34_coinbase_height(height), 0xffffffff))
     coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = nValue * COIN
-    if nValue == 50:
-        halvings = int(height / 150)  # regtest
-        coinbaseoutput.nValue >>= halvings
-        coinbaseoutput.nValue += fees
+    if height == 0:
+        coinbaseoutput.nValue = 0
+    elif nValue:
+        if nValue == 50*COIN:
+            coinbaseoutput.nValue = 15809535
+        else:
+            coinbaseoutput.nValue = nValue
+    else:
+        coinbaseoutput.nValue = floor(22357200*pow(2, (nBits>>1)/32 - 1)) | 1023
+    print("Python GetBlockSubsidy: ", coinbaseoutput.nValue )
+
     if pubkey is not None:
         coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
     else:

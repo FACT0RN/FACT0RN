@@ -531,9 +531,16 @@ class TestNode():
         if 'dstaddr' not in kwargs:
             kwargs['dstaddr'] = '127.0.0.1'
 
+        print("PORT: ", kwargs['dstport'], flush=True)
+        print("  IP: ", kwargs['dstaddr'], flush=True)
+        print( kwargs, self.chain)
         p2p_conn.peer_connect(**kwargs, net=self.chain, timeout_factor=self.timeout_factor)()
+        print("peer_connect called.")
         self.p2ps.append(p2p_conn)
+        print("append called.")
         p2p_conn.wait_until(lambda: p2p_conn.is_connected, check_connected=False)
+        print("TEST 2.")
+
         if wait_for_verack:
             # Wait for the node to send us the version and verack
             p2p_conn.wait_for_verack()

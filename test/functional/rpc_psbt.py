@@ -56,7 +56,7 @@ class PSBTTest(BitcoinTestFramework):
         offline_addr = offline_node.getnewaddress(address_type="p2sh-segwit")
         online_addr = w2.getnewaddress(address_type="p2sh-segwit")
         wonline.importaddress(offline_addr, "", False)
-        mining_node.sendtoaddress(address=offline_addr, amount=1.0)
+        mining_node.sendtoaddress(address=offline_addr, amount=1.0*0.003161907)
         mining_node.generate(nblocks=1)
         self.sync_blocks([mining_node, online_node])
 
@@ -305,12 +305,12 @@ class PSBTTest(BitcoinTestFramework):
         # Create outputs to nodes 1 and 2
         node1_addr = self.nodes[1].getnewaddress()
         node2_addr = self.nodes[2].getnewaddress()
-        txid1 = self.nodes[0].sendtoaddress(node1_addr, 13)
-        txid2 = self.nodes[0].sendtoaddress(node2_addr, 13)
+        txid1 = self.nodes[0].sendtoaddress(node1_addr, 13*0.003161907)
+        txid2 = self.nodes[0].sendtoaddress(node2_addr, 13*0.003161907)
         blockhash = self.nodes[0].generate(6)[0]
         self.sync_all()
-        vout1 = find_output(self.nodes[1], txid1, 13, blockhash=blockhash)
-        vout2 = find_output(self.nodes[2], txid2, 13, blockhash=blockhash)
+        vout1 = find_output(self.nodes[1], txid1, 13*0.003161907, blockhash=blockhash)
+        vout2 = find_output(self.nodes[2], txid2, 13*0.003161907, blockhash=blockhash)
 
         # Create a psbt spending outputs from nodes 1 and 2
         psbt_orig = self.nodes[0].createpsbt([{"txid":txid1,  "vout":vout1}, {"txid":txid2, "vout":vout2}], {self.nodes[0].getnewaddress():25.999})
@@ -405,7 +405,7 @@ class PSBTTest(BitcoinTestFramework):
         # Make sure unsafe inputs are included if specified
         self.nodes[2].createwallet(wallet_name="unsafe")
         wunsafe = self.nodes[2].get_wallet_rpc("unsafe")
-        self.nodes[0].sendtoaddress(wunsafe.getnewaddress(), 2)
+        self.nodes[0].sendtoaddress(wunsafe.getnewaddress(), 2*0.003161907)
         self.sync_mempools()
         assert_raises_rpc_error(-4, "Insufficient funds", wunsafe.walletcreatefundedpsbt, [], [{self.nodes[0].getnewaddress(): 1}])
         wunsafe.walletcreatefundedpsbt([], [{self.nodes[0].getnewaddress(): 1}], 0, {"include_unsafe": True})
@@ -485,14 +485,14 @@ class PSBTTest(BitcoinTestFramework):
 
         # Send to all types of addresses
         addr1 = self.nodes[1].getnewaddress("", "bech32")
-        txid1 = self.nodes[0].sendtoaddress(addr1, 11)
-        vout1 = find_output(self.nodes[0], txid1, 11)
+        txid1 = self.nodes[0].sendtoaddress(addr1, 11*0.003161907)
+        vout1 = find_output(self.nodes[0], txid1, 11*0.003161907)
         addr2 = self.nodes[1].getnewaddress("", "legacy")
-        txid2 = self.nodes[0].sendtoaddress(addr2, 11)
-        vout2 = find_output(self.nodes[0], txid2, 11)
+        txid2 = self.nodes[0].sendtoaddress(addr2, 11*0.003161907)
+        vout2 = find_output(self.nodes[0], txid2, 11*0.003161907)
         addr3 = self.nodes[1].getnewaddress("", "p2sh-segwit")
-        txid3 = self.nodes[0].sendtoaddress(addr3, 11)
-        vout3 = find_output(self.nodes[0], txid3, 11)
+        txid3 = self.nodes[0].sendtoaddress(addr3, 11*0.003161907)
+        vout3 = find_output(self.nodes[0], txid3, 11*0.003161907)
         self.sync_all()
 
         def test_psbt_input_keys(psbt_input, keys):
@@ -528,8 +528,8 @@ class PSBTTest(BitcoinTestFramework):
 
         # Join two distinct PSBTs
         addr4 = self.nodes[1].getnewaddress("", "p2sh-segwit")
-        txid4 = self.nodes[0].sendtoaddress(addr4, 5)
-        vout4 = find_output(self.nodes[0], txid4, 5)
+        txid4 = self.nodes[0].sendtoaddress(addr4, 5*0.003161907)
+        vout4 = find_output(self.nodes[0], txid4, 5*0.003161907)
         self.nodes[0].generate(6)
         self.sync_all()
         psbt2 = self.nodes[1].createpsbt([{"txid":txid4, "vout":vout4}], {self.nodes[0].getnewaddress():Decimal('4.999')})
@@ -552,12 +552,12 @@ class PSBTTest(BitcoinTestFramework):
 
         # Newly created PSBT needs UTXOs and updating
         addr = self.nodes[1].getnewaddress("", "p2sh-segwit")
-        txid = self.nodes[0].sendtoaddress(addr, 7)
+        txid = self.nodes[0].sendtoaddress(addr, 7*0.003161907)
         addrinfo = self.nodes[1].getaddressinfo(addr)
         blockhash = self.nodes[0].generate(6)[0]
         self.sync_all()
-        vout = find_output(self.nodes[0], txid, 7, blockhash=blockhash)
-        psbt = self.nodes[1].createpsbt([{"txid":txid, "vout":vout}], {self.nodes[0].getnewaddress("", "p2sh-segwit"):Decimal('6.999')})
+        vout = find_output(self.nodes[0], txid, 7*0.003161907, blockhash=blockhash)
+        psbt = self.nodes[1].createpsbt([{"txid":txid, "vout":vout}], {self.nodes[0].getnewaddress("", "p2sh-segwit"):Decimal('0.022133349')})
         analyzed = self.nodes[0].analyzepsbt(psbt)
         assert not analyzed['inputs'][0]['has_utxo'] and not analyzed['inputs'][0]['is_final'] and analyzed['inputs'][0]['next'] == 'updater' and analyzed['next'] == 'updater'
 

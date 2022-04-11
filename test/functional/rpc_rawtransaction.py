@@ -75,9 +75,9 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.sync_all()
         self.nodes[0].generate(COINBASE_MATURITY + 1)
         self.sync_all()
-        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),1.5)
-        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),1.0)
-        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),5.0)
+        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),1.5*0.003161907)
+        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),1.0*0.003161907)
+        self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(),5.0*0.003161907)
         self.sync_all()
         self.nodes[0].generate(5)
         self.sync_all()
@@ -223,7 +223,7 @@ class RawTransactionsTest(BitcoinTestFramework):
         #####################################
 
         # make a tx by sending then generate 2 blocks; block1 has the tx in it
-        tx = self.nodes[2].sendtoaddress(self.nodes[1].getnewaddress(), 1)
+        tx = self.nodes[2].sendtoaddress(self.nodes[1].getnewaddress(), 0.003161907)
         block1, block2 = self.nodes[2].generate(2)
         self.sync_all()
         # We should be able to get the raw transaction by providing the correct block
@@ -273,11 +273,11 @@ class RawTransactionsTest(BitcoinTestFramework):
             bal = self.nodes[2].getbalance()
 
             # send 1.2 BTC to msig adr
-            txId = self.nodes[0].sendtoaddress(mSigObj, 1.2)
+            txId = self.nodes[0].sendtoaddress(mSigObj, 1.2*0.003161907)
             self.sync_all()
             self.nodes[0].generate(1)
             self.sync_all()
-            assert_equal(self.nodes[2].getbalance(), bal+Decimal('1.20000000')) #node2 has both keys of the 2of2 ms addr., tx should affect the balance
+            assert_equal(self.nodes[2].getbalance(), bal+Decimal('0.003161907')) #node2 has both keys of the 2of2 ms addr., tx should affect the balance
 
 
             # 2of3 test from different nodes
@@ -292,7 +292,7 @@ class RawTransactionsTest(BitcoinTestFramework):
 
             mSigObj = self.nodes[2].addmultisigaddress(2, [addr1Obj['pubkey'], addr2Obj['pubkey'], addr3Obj['pubkey']])['address']
 
-            txId = self.nodes[0].sendtoaddress(mSigObj, 2.2)
+            txId = self.nodes[0].sendtoaddress(mSigObj, 0.003161907)
             decTx = self.nodes[0].gettransaction(txId)
             rawTx = self.nodes[0].decoderawtransaction(decTx['hex'])
             self.sync_all()
@@ -335,7 +335,7 @@ class RawTransactionsTest(BitcoinTestFramework):
             mSigObj = self.nodes[2].addmultisigaddress(2, [addr1Obj['pubkey'], addr2Obj['pubkey']])['address']
             mSigObjValid = self.nodes[2].getaddressinfo(mSigObj)
 
-            txId = self.nodes[0].sendtoaddress(mSigObj, 2.2)
+            txId = self.nodes[0].sendtoaddress(mSigObj, 2.2*0.003161907)
             decTx = self.nodes[0].gettransaction(txId)
             rawTx2 = self.nodes[0].decoderawtransaction(decTx['hex'])
             self.sync_all()
@@ -388,7 +388,7 @@ class RawTransactionsTest(BitcoinTestFramework):
 
         # Basic signrawtransaction test
         addr = self.nodes[1].getnewaddress()
-        txid = self.nodes[0].sendtoaddress(addr, 10)
+        txid = self.nodes[0].sendtoaddress(addr, 10*0.003161907)
         self.nodes[0].generate(1)
         self.sync_all()
         vout = find_vout_for_address(self.nodes[1], txid, addr)
@@ -468,9 +468,9 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.log.info('sendrawtransaction/testmempoolaccept with maxfeerate')
 
         # Test a transaction with a small fee.
-        txId = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 1.0)
+        txId = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 0.003161907)
         rawTx = self.nodes[0].getrawtransaction(txId, True)
-        vout = next(o for o in rawTx['vout'] if o['value'] == Decimal('1.00000000'))
+        vout = next(o for o in rawTx['vout'] if o['value'] == Decimal('0.003161907'))
 
         self.sync_all()
         inputs = [{ "txid" : txId, "vout" : vout['n'] }]
@@ -492,9 +492,9 @@ class RawTransactionsTest(BitcoinTestFramework):
         self.nodes[2].sendrawtransaction(hexstring=rawTxSigned['hex'])
 
         # Test a transaction with a large fee.
-        txId = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 1.0)
+        txId = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 0.003161907)
         rawTx = self.nodes[0].getrawtransaction(txId, True)
-        vout = next(o for o in rawTx['vout'] if o['value'] == Decimal('1.00000000'))
+        vout = next(o for o in rawTx['vout'] if o['value'] == Decimal('0.003161907'))
 
         self.sync_all()
         inputs = [{ "txid" : txId, "vout" : vout['n'] }]

@@ -66,7 +66,7 @@ class P2PFingerprintTest(BitcoinTestFramework):
         node0 = self.nodes[0].add_p2p_connection(P2PInterface())
 
         # Set node time to 60 days ago
-        self.nodes[0].setmocktime(int(time.time()) - 60 * 24 * 60 * 60)
+        self.nodes[0].setmocktime(int(time.time()) - 3 * 24 * 60 * 60)
 
         # Generating a chain of 10 blocks
         block_hashes = self.nodes[0].generatetoaddress(10, self.nodes[0].get_deterministic_priv_key().address)
@@ -107,6 +107,7 @@ class P2PFingerprintTest(BitcoinTestFramework):
             node0.last_message.pop("block", None)
         self.send_block_request(stale_hash, node0)
         node0.sync_with_ping()
+        print( node0.last_message )
         assert "block" not in node0.last_message
 
         # Request for very old stale block header should now fail

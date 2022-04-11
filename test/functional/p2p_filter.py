@@ -173,7 +173,7 @@ class FilterTest(BitcoinTestFramework):
         self.log.info('Check that we not receive a tx if the filter does not match a mempool tx')
         filter_peer.merkleblock_received = False
         filter_peer.tx_received = False
-        self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 90)
+        self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 0.28457163 )
         filter_peer.sync_send_with_ping()
         assert not filter_peer.merkleblock_received
         assert not filter_peer.tx_received
@@ -187,7 +187,7 @@ class FilterTest(BitcoinTestFramework):
         self.log.info('Check that after deleting filter all txs get relayed again')
         filter_peer.send_and_ping(msg_filterclear())
         for _ in range(5):
-            txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 7)
+            txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), .014)
             filter_peer.wait_for_tx(txid)
 
         self.log.info('Check that request for filtered blocks is ignored if no filter is set')

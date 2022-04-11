@@ -125,10 +125,10 @@ MESSAGEMAP = {
 }
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",   # mainnet
-    "testnet3": b"\x0b\x11\x09\x07",  # testnet3
-    "regtest": b"\xfa\xbf\xb5\xda",   # regtest
-    "signet": b"\x0a\x03\xcf\x40",    # signet
+    "mainnet":  b"\xca\xfe\xca\xfe",  # mainnet
+    "testnet3": b"\xfa\xc7\x02\x88",  # testnet3
+    "regtest":  b"\xbe\xdb\xed\xbe",  # regtest
+    "signet":   b"\x40\xcf\x03\x0a",  # signet
 }
 
 

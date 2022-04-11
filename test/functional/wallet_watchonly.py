@@ -40,7 +40,7 @@ class CreateWalletWatchonlyTest(BitcoinTestFramework):
         node.generatetoaddress(COINBASE_MATURITY + 1, a1)
 
         # send 1 btc to our watch-only address
-        txid = def_wallet.sendtoaddress(wo_addr, 1)
+        txid = def_wallet.sendtoaddress(wo_addr, 0.003161907)
         self.nodes[0].generate(1)
 
         # getbalance

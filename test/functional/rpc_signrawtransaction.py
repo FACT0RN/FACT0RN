@@ -200,7 +200,7 @@ class SignRawTransactionsTest(BitcoinTestFramework):
         p2sh_p2wsh_address = self.nodes[1].createmultisig(1, [embedded_pubkey], "p2sh-segwit")
         # send transaction to P2SH-P2WSH 1-of-1 multisig address
         self.nodes[0].generate(COINBASE_MATURITY + 1)
-        self.nodes[0].sendtoaddress(p2sh_p2wsh_address["address"], 49.999)
+        self.nodes[0].sendtoaddress(p2sh_p2wsh_address["address"], 0.15809535 - 0.01)
         self.nodes[0].generate(1)
         self.sync_all()
         # Get the UTXO info from scantxoutset
@@ -234,7 +234,7 @@ class SignRawTransactionsTest(BitcoinTestFramework):
         addr = script_to_p2sh(redeem_script)
         script_pub_key = self.nodes[1].validateaddress(addr)['scriptPubKey']
         # Fund that address
-        txid = self.nodes[0].sendtoaddress(addr, 10)
+        txid = self.nodes[0].sendtoaddress(addr, 10*0.003161907)
         vout = find_vout_for_address(self.nodes[0], txid, addr)
         self.nodes[0].generate(1)
         # Now create and sign a transaction spending that output on node[0], which doesn't know the scripts or keys
@@ -277,7 +277,7 @@ class SignRawTransactionsTest(BitcoinTestFramework):
         address = script_to_p2wsh(script)
 
         # Fund that address and make the spend
-        txid = self.nodes[0].sendtoaddress(address, 1)
+        txid = self.nodes[0].sendtoaddress(address, 0.003161907)
         vout = find_vout_for_address(self.nodes[0], txid, address)
         self.nodes[0].generate(1)
         utxo = self.nodes[0].listunspent()[0]
@@ -312,7 +312,7 @@ class SignRawTransactionsTest(BitcoinTestFramework):
         address = script_to_p2wsh(script)
 
         # Fund that address and make the spend
-        txid = self.nodes[0].sendtoaddress(address, 1)
+        txid = self.nodes[0].sendtoaddress(address, 0.003161907)
         vout = find_vout_for_address(self.nodes[0], txid, address)
         self.nodes[0].generate(1)
         utxo = self.nodes[0].listunspent()[0]

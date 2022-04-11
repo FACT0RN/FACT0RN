@@ -32,13 +32,19 @@ import time
 from test_framework.siphash import siphash256
 from test_framework.util import hex_str_to_bytes, assert_equal
 
+import ctypes
+import random
+import sympy
+from sympy.ntheory import factorint
+from math import gcd
+
 MAX_LOCATOR_SZ = 101
 MAX_BLOCK_BASE_SIZE = 1000000
 MAX_BLOOM_FILTER_SIZE = 36000
 MAX_BLOOM_HASH_FUNCS = 50
 
 COIN = 100000000  # 1 btc in satoshis
-MAX_MONEY = 21000000 * COIN
+MAX_MONEY = 46116860184 * COIN
 
 BIP125_SEQUENCE_NUMBER = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
 
@@ -64,6 +70,7 @@ MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG
 FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
+
 
 # Serialization/deserialization tools
 def sha256(s):
@@ -425,7 +432,7 @@ class CTxOut:
 
     def serialize(self):
         r = b""
-        r += struct.pack("<q", self.nValue)
+        r += struct.pack("<q", self.nValue )
         r += ser_string(self.scriptPubKey)
         return r
 
@@ -619,15 +626,70 @@ class CTransaction:
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
             % (self.nVersion, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
 
+#FACT0RN Blockchain C classes needed to run gHash from C
+class CParams(ctypes.Structure):
+    _fields_=[("hashRounds",ctypes.c_uint32 ),
+              ("MillerRabinRounds",ctypes.c_uint32 )
+             ]
+
+    def __init__(self):
+        self.hashRounds = 1          #Used in gHash
+        self.MillerRabinRounds = 50  #Not used in gHash
+
+class uint1024(ctypes.Structure):
+    _fields_=[("data", ctypes.c_uint64 * 16 )]
+
+    def __init__(self, n):
+        fromInt(n)
+
+    def toInt( self ):
+        ans = 0    
+    
+        for idx in range(16):
+            ans += self.data[idx] << (idx*64)
+        
+        return ans
+    
+    def fromInt( self, n ):
+        ans = [0]*16
+        MASK = (1<<64)-1
+        
+        for idx in range(16):
+            ans[idx] = (n >> (idx*64)) & MASK
+        
+        self.data = (ctypes.c_uint64 * 16)(*ans)
+
+class CBlockHeader_C(ctypes.Structure):
+    blocktemplate = {}
+    _hash = "0"*32
+    _fields_ = [("nP1",          ctypes.c_uint64 * 16),
+              ("hashPrevBlock",  ctypes.c_uint64 * 4 ),
+              ("hashMerkleRoot", ctypes.c_uint64 * 4 ),
+              ("nNonce",   ctypes.c_uint64),
+              ("wOffset",  ctypes.c_int64),
+              ("nVersion", ctypes.c_uint32),
+              ("nTime",    ctypes.c_uint32),
+              ("nBits",    ctypes.c_uint16)
+             ]
+
+#Load gHash
+import os
+print(os.getcwd())
+
+gHash = ctypes.CDLL("test_framework/gHash.so").gHash
+gHash.restype = uint1024
 
 class CBlockHeader:
     __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce",
-                 "nTime", "nVersion", "sha256")
+                 "nTime", "nVersion", "sha256", "nP1", "wOffset")
 
     def __init__(self, header=None):
         if header is None:
             self.set_null()
         else:
+            #Debugging purpose
+            assert header.nBits <= 2048, "Expected nBits <= 2048 but received nBits="+str(header.nBits)
+
             self.nVersion = header.nVersion
             self.hashPrevBlock = header.hashPrevBlock
             self.hashMerkleRoot = header.hashMerkleRoot
@@ -636,6 +698,8 @@ class CBlockHeader:
             self.nNonce = header.nNonce
             self.sha256 = header.sha256
             self.hash = header.hash
+            self.wOffset = header.wOffset[0] if isinstance(header.wOffset, tuple) else header.wOffset
+            self.nP1 = header.nP1
             self.calc_sha256()
 
     def set_null(self):
@@ -647,38 +711,68 @@ class CBlockHeader:
         self.nNonce = 0
         self.sha256 = None
         self.hash = None
+        self.nP1 = 0
+        self.wOffset = 0
 
     def deserialize(self, f):
-        self.nVersion = struct.unpack("<i", f.read(4))[0]
+        #Some tests make wOffset a one member tuple,
+        #address that here.
+        self.wOffset = self.wOffset[0] if isinstance(self.wOffset, tuple) else self.wOffset
+        
+        #Debuggin purposes
+        assert self.nBits <= 2048, "Expected nBits <= 2048 but received nBits="+str(self.nBits)
+        
+        self.nP1 = int.from_bytes( f.read(128), "little" )
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
+        self.nNonce = struct.unpack("<Q", f.read(8))[0]
+        self.wOffset = struct.unpack("<q", f.read(8))
+        self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.nTime = struct.unpack("<I", f.read(4))[0]
-        self.nBits = struct.unpack("<I", f.read(4))[0]
-        self.nNonce = struct.unpack("<I", f.read(4))[0]
+        self.nBits = struct.unpack("<H", f.read(2))[0]
         self.sha256 = None
         self.hash = None
 
     def serialize(self):
+        #Some tests make wOffset a one member tuple,
+        #address that here.
+        self.wOffset = self.wOffset[0] if isinstance(self.wOffset, tuple) else self.wOffset
+        
+        #Debuggin purposes
+        assert self.nBits <= 2048, "Expected nBits <= 2048 but received nBits="+str(self.nBits)
+        
         r = b""
-        r += struct.pack("<i", self.nVersion)
+        r += self.nP1.to_bytes(128, byteorder='little')
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
+        r += struct.pack("<Q", self.nNonce)
+        r += struct.pack("<q", self.wOffset)
+        r += struct.pack("<i", self.nVersion)
         r += struct.pack("<I", self.nTime)
-        r += struct.pack("<I", self.nBits)
-        r += struct.pack("<I", self.nNonce)
+        r += struct.pack("<H", self.nBits)
+
         return r
 
     def calc_sha256(self):
-        if self.sha256 is None:
-            r = b""
-            r += struct.pack("<i", self.nVersion)
-            r += ser_uint256(self.hashPrevBlock)
-            r += ser_uint256(self.hashMerkleRoot)
-            r += struct.pack("<I", self.nTime)
-            r += struct.pack("<I", self.nBits)
-            r += struct.pack("<I", self.nNonce)
-            self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+        #Some tests make wOffset a one member tuple,
+        #address that here.
+        self.wOffset = self.wOffset[0] if isinstance(self.wOffset, tuple) else self.wOffset
+        
+        #Debuggin purposes
+        assert self.nBits <= 2048, "Expected nBits <= 2048 but received nBits="+str(self.nBits)
+
+        r = b""
+        r += self.nP1.to_bytes(128, byteorder='little')
+        r += ser_uint256(self.hashPrevBlock)
+        r += ser_uint256(self.hashMerkleRoot)
+        r += struct.pack("<Q", self.nNonce)
+        r += struct.pack("<q", self.wOffset)
+        r += struct.pack("<L", self.nVersion)
+        r += struct.pack("<L", self.nTime)
+        r += struct.pack("<H", self.nBits)
+        
+        self.sha256 = uint256_from_str(hash256(r))
+        self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
 
     def rehash(self):
         self.sha256 = None
@@ -686,12 +780,15 @@ class CBlockHeader:
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+        #Some tests make wOffset a one member tuple, address that here.
+        self.wOffset = self.wOffset[0] if isinstance(self.wOffset, tuple) else self.wOffset
+
+        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%03d nNonce=%08x wOffset=%05d nP1=%d )" \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
-               time.ctime(self.nTime), self.nBits, self.nNonce)
+               time.ctime(self.nTime), self.nBits, self.nNonce, self.wOffset, self.nP1)
 
 BLOCK_HEADER_SIZE = len(CBlockHeader().serialize())
-assert_equal(BLOCK_HEADER_SIZE, 80)
+assert_equal(BLOCK_HEADER_SIZE, 218)
 
 class CBlock(CBlockHeader):
     __slots__ = ("vtx",)
@@ -755,11 +852,99 @@ class CBlock(CBlockHeader):
         return True
 
     def solve(self):
-        self.rehash()
-        target = uint256_from_compact(self.nBits)
-        while self.sha256 > target:
-            self.nNonce += 1
-            self.rehash()
+        #Debuggin purpose
+        assert self.nBits >= 30, "nBits expected to be at least 30, but nBits=" + str(self.nBits) 
+        assert self.nBits <= 2048, "nBits expected to be at most 2048, but nBits=" + str(self.nBits) 
+
+        #Define function to convert sha2 hashes into expected ctypes
+        def hashToArray( Hash ):
+            if Hash == 0:
+                return [0,0,0,0]
+
+            number = Hash
+            MASK = (1 << 64) - 1
+            arr = [ ( number >> 64*(jj) )&MASK for jj in range(0, 4) ]
+
+            return arr
+
+        #Create CBlockHeader in C
+        blockHeader = CBlockHeader_C() 
+        blockHeader.nVersion       = self.nVersion
+        blockHeader.hashPrevBlock  = (ctypes.c_uint64 * 4)(*hashToArray(self.hashPrevBlock))
+        blockHeader.hashMerkleRoot = (ctypes.c_uint64 * 4)(*hashToArray(self.hashMerkleRoot))
+        blockHeader.nTime          = self.nTime
+        blockHeader.nBits          = self.nBits
+        blockHeader.nNonce         = self.nNonce
+
+        #Get paramter C object
+        params = CParams()
+
+        #Get level 1 siever
+        siev = 19078266889580195013601891820992757757219839668357012055907516904309700014933909014729740190
+
+        #Solve block
+        DONE = False
+        while not DONE:
+            #Get random nonce
+            nonce = random.randint(0, (1<<64) - 1 )
+            blockHeader.nNonce = nonce
+            self.nNonce        = nonce
+            
+            #Get W from gHash       
+            W = gHash(blockHeader,params)
+            W = W.toInt()
+
+            #Get candidates to solve the block
+            candidates =  [ n for n in range( W - 16*W.bit_length(), W + 16*W.bit_length()) if gcd(n, siev) == 1 ]
+
+            #Sieve survivors for block solution
+            for n in candidates:
+                #Factor candidate
+                factors = factorint(n)
+
+                #Factors Integer.
+                factorList = [ int(a) for a in factors ]
+
+                #Important as the FACTOR Blockchain requires the smallest be submitted.
+                factorList.sort()
+
+                #Check we only have two prime factors
+                if len(factorList) == 2:
+                    #Check they have the same number of binary digits
+                    if ( factorList[0].bit_length() == factorList[1].bit_length()):
+                        #Check they have the expected number of binary digits
+                        if ( blockHeader.nBits//2 + ( blockHeader.nBits&1) == factorList[0].bit_length() ):
+                            print( factorList[0].bit_length(), factorList[1].bit_length() )
+
+                            #Update values for the found block
+                            self.nP1     = factorList[0]
+                            self.nNonce  = nonce
+                            self.wOffset = n - W
+
+                            #Update block hash
+                            self.calc_sha256()
+                            
+                            #Update flag
+                            DONE = True
+
+                            print("Python solved:")
+                            print()
+                            print("      nP1: ", self.nP1)
+                            print(" PrevHash: ", hex(self.hashPrevBlock))
+                            print(" MerkRoot: ", hex(self.hashMerkleRoot))
+                            print("  version: ", self.nVersion)
+                            print("    nBits: ", self.nBits)
+                            print("  wOffset: ", self.wOffset)
+                            print("   nNonce: ", self.nNonce)
+                            print("    nTime: ", self.nTime)
+                            print("        W: ", W )
+                            print("BlockHash: ", self.hash, flush=True )
+                            print("factor[0].bit_length() : ", factorList[0].bit_length() ) 
+
+
+                            #Exit inner loop
+                            break
+
 
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \

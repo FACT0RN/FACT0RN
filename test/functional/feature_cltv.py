@@ -31,7 +31,7 @@ from test_framework.wallet import (
     MiniWalletMode,
 )
 
-CLTV_HEIGHT = 1351
+CLTV_HEIGHT = 1
 
 
 # Helper function to modify a transaction by
@@ -101,11 +101,11 @@ class BIP65Test(BitcoinTestFramework):
         peer = self.nodes[0].add_p2p_connection(P2PInterface())
         wallet = MiniWallet(self.nodes[0], mode=MiniWalletMode.RAW_OP_TRUE)
 
-        self.test_cltv_info(is_active=False)
+        self.test_cltv_info(is_active=True)
 
         self.log.info("Mining %d blocks", CLTV_HEIGHT - 2)
         wallet.generate(10)
-        self.nodes[0].generate(CLTV_HEIGHT - 2 - 10)
+        self.nodes[0].generate(CLTV_HEIGHT )
 
         self.log.info("Test that invalid-according-to-CLTV transactions can still appear in a block")
 
