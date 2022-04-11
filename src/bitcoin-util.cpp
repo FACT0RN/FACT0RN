@@ -79,7 +79,7 @@ static int AppInitUtil(ArgsManager& args, int argc, char* argv[])
     return CONTINUE_EXECUTION;
 }
 
-static void grind_task(uint32_t nBits, CBlockHeader& header_orig, uint32_t offset, uint32_t step, std::atomic<bool>& found)
+static void grind_task(uint16_t nBits, CBlockHeader& header_orig, uint32_t offset, uint32_t step, std::atomic<bool>& found)
 {
     arith_uint256 target;
     bool neg, over;
@@ -118,7 +118,7 @@ static int Grind(const std::vector<std::string>& args, std::string& strPrint)
         return EXIT_FAILURE;
     }
 
-    uint32_t nBits = header.nBits;
+    uint16_t nBits = header.nBits;
     std::atomic<bool> found{false};
 
     std::vector<std::thread> threads;

@@ -7,17 +7,23 @@
 #define BITCOIN_POW_H
 
 #include <consensus/params.h>
-
 #include <stdint.h>
+#include <gmp.h>
+#include <gmpxx.h>
 
 class CBlockHeader;
 class CBlockIndex;
 class uint256;
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&);
-unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params&);
+uint16_t GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&);
+uint16_t CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params&);
 
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
+bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params&);
+uint1024 gHash( const CBlockHeader& block, const Consensus::Params&);
+
+//Factoring pollar rho algorithm
+int rho( uint64_t &g, uint64_t n);
+int rho( mpz_t g, mpz_t n);
 
 #endif // BITCOIN_POW_H

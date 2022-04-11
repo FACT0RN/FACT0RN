@@ -146,13 +146,13 @@ double base_uint<BITS>::getdouble() const
 template <unsigned int BITS>
 std::string base_uint<BITS>::GetHex() const
 {
-    return ArithToUint256(*this).GetHex();
+        return ArithToUint256(*this).GetHex();
 }
 
 template <unsigned int BITS>
 void base_uint<BITS>::SetHex(const char* psz)
 {
-    *this = UintToArith256(uint256S(psz));
+    	*this = UintToArith256(uint256S(psz));
 }
 
 template <unsigned int BITS>

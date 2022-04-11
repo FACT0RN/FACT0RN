@@ -11,6 +11,7 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
+#include <gmp.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -616,7 +617,59 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                case OP_NOP1: case OP_NOP4: case OP_NOP5:
+                case OP_NOP1:
+                {
+                    // Stack Top
+                    //    x1
+                    //    x2
+                    //
+                    // Perform:
+                    //    x1 x2 -- return 1 if x2 Mod x1 == 0 else 0
+                    if (stack.size() < 2)
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+
+                    //Retrieve x2 and do validation
+                    mpz_t x1;
+                    mpz_init(x1);
+                    mpz_import( x1, stacktop(-1).size(), -1, sizeof(char), 0, 0, &(stacktop(-1)[0]) );
+
+                    //Check that x1 != 0
+                    if( mpz_cmp_ui( x1, 0) == 0){
+                       mpz_clear(x1);
+                       return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+
+                    //Retrieve remaning data. Note that x1 is always 
+                    //interpreted as a positive integer
+                    mpz_t x2;
+                    mpz_init(x2);
+                    mpz_import( x2, stacktop(-2).size(), -1, sizeof(char), 0, 0, &(stacktop(-2)[0]));
+
+                    //Perform operation
+                    mpz_t result;
+                    mpz_init(result);
+                    mpz_mod( result, x2, x1);
+
+                    //Clear GMP managed allocated memory
+                    mpz_clear(x1);
+                    mpz_clear(x2);
+
+                    //Check to see if x1 divides x2, or equivalently that x2 Mod x1 = 0
+                    unsigned char retValue = (mpz_cmp_ui( result, 0 ) == 0);
+
+                    //Clear GMP managed allocated memory
+                    mpz_clear(result);
+
+                    //Update stack
+                    std::vector<unsigned char> ret (1, retValue);
+                    
+                    popstack(stack);
+                    popstack(stack);
+                    stack.push_back( ret );
+                }
+                break;
+
+                case OP_NOP4: case OP_NOP5:
                 case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
                 {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)

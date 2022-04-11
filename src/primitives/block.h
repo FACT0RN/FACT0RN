@@ -21,28 +21,39 @@ class CBlockHeader
 {
 public:
     // header
-    int32_t nVersion;
-    uint256 hashPrevBlock;
-    uint256 hashMerkleRoot;
+    uint1024 nP1;
+    uint256  hashPrevBlock;
+    uint256  hashMerkleRoot;
+    uint64_t nNonce;
+    int64_t  wOffset;
+    int32_t  nVersion;
     uint32_t nTime;
-    uint32_t nBits;
-    uint32_t nNonce;
+    uint16_t nBits;
 
     CBlockHeader()
     {
         SetNull();
     }
 
-    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce); }
+    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE( obj.nP1,
+                                                      obj.hashPrevBlock, 
+                                                      obj.hashMerkleRoot, 
+                                                      obj.nNonce, 
+                                                      obj.wOffset,
+                                                      obj.nVersion,
+                                                      obj.nTime, 
+                                                      obj.nBits ); }
 
     void SetNull()
     {
-        nVersion = 0;
+	nP1.SetNull();
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        nNonce = 0;
+        wOffset = 0;
+        nVersion = 0;
         nTime = 0;
         nBits = 0;
-        nNonce = 0;
     }
 
     bool IsNull() const
@@ -95,12 +106,15 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
-        block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.nP1                 = nP1;
+        block.hashPrevBlock       = hashPrevBlock;
+        block.hashMerkleRoot      = hashMerkleRoot;
+        block.nNonce              = nNonce;
+        block.wOffset             = wOffset;
+        block.nVersion            = nVersion;
+        block.nTime               = nTime;
+        block.nBits               = nBits;
+
         return block;
     }
 

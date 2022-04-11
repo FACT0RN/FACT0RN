@@ -51,27 +51,27 @@ BOOST_FIXTURE_TEST_SUITE(blockchain_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_very_low_target)
 {
-    TestDifficulty(0x1f111111, 0.000001);
+    TestDifficulty(250, 250);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_low_target)
 {
-    TestDifficulty(0x1ef88f6f, 0.000016);
+    TestDifficulty(200, 200);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_mid_target)
 {
-    TestDifficulty(0x1df88f6f, 0.004023);
+    TestDifficulty(300, 300);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_high_target)
 {
-    TestDifficulty(0x1cf88f6f, 1.029916);
+    TestDifficulty(350, 350);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_very_high_target)
 {
-    TestDifficulty(0x12345678, 5913134931067755359633408.0);
+    TestDifficulty(600, 600);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

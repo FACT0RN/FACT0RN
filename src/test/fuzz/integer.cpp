@@ -64,8 +64,11 @@ FUZZ_TARGET_INIT(integer, initialize_integer)
     const char ch = fuzzed_data_provider.ConsumeIntegral<char>();
     const bool b = fuzzed_data_provider.ConsumeBool();
 
-    const Consensus::Params& consensus_params = Params().GetConsensus();
-    (void)CheckProofOfWork(u256, u32, consensus_params);
+    //const Consensus::Params& consensus_params = Params().GetConsensus();
+
+    //Replace by equivalent for the FACTor blokcchian
+    //(void)CheckProofOfWork(u256, u32, consensus_params);
+
     if (u64 <= MAX_MONEY) {
         const uint64_t compressed_money_amount = CompressAmount(u64);
         assert(u64 == DecompressAmount(compressed_money_amount));

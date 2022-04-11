@@ -35,7 +35,7 @@ static constexpr int64_t TIMESTAMP_WINDOW = MAX_FUTURE_BLOCK_TIME;
  *
  * Ref: https://github.com/bitcoin/bitcoin/pull/1026
  */
-static constexpr int64_t MAX_BLOCK_TIME_GAP = 90 * 60;
+static constexpr int64_t MAX_BLOCK_TIME_GAP = 90 * 60;   //TODO: Adjust for FACTor chain.
 
 class CBlockFileInfo
 {
@@ -187,11 +187,13 @@ public:
     uint32_t nStatus{0};
 
     //! block header
-    int32_t nVersion{0};
+    uint1024 nP1{};
     uint256 hashMerkleRoot{};
+    uint64_t nNonce{0};
+    int64_t  wOffset{0};
+    int32_t  nVersion{0};
     uint32_t nTime{0};
-    uint32_t nBits{0};
-    uint32_t nNonce{0};
+    uint16_t nBits{0};
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId{0};
@@ -204,11 +206,14 @@ public:
     }
 
     explicit CBlockIndex(const CBlockHeader& block)
-        : nVersion{block.nVersion},
+        : 
+          nP1{block.nP1},
           hashMerkleRoot{block.hashMerkleRoot},
+          nNonce{block.nNonce},
+          wOffset{block.wOffset},
+          nVersion{block.nVersion},
           nTime{block.nTime},
-          nBits{block.nBits},
-          nNonce{block.nNonce}
+          nBits{block.nBits}
     {
     }
 
@@ -233,13 +238,17 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
+
+        block.nP1            = nP1;
         if (pprev)
             block.hashPrevBlock = pprev->GetBlockHash();
         block.hashMerkleRoot = hashMerkleRoot;
+        block.nNonce         = nNonce;
+        block.wOffset        = wOffset;
+        block.nVersion       = nVersion;
         block.nTime          = nTime;
         block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        
         return block;
     }
 
@@ -285,10 +294,15 @@ public:
 
     std::string ToString() const
     {
-        return strprintf("CBlockIndex(pprev=%p, nHeight=%d, merkle=%s, hashBlock=%s)",
+        return strprintf("CBlockIndex(pprev=%p, nHeight=%d, merkle=%s, hashBlock=%s, nP1=%s, nBits=%d, nNonce=%ld, wOffset=%ld)",
             pprev, nHeight,
             hashMerkleRoot.ToString(),
-            GetBlockHash().ToString());
+            GetBlockHash().ToString(),
+            nP1.ToString(),
+            nBits,
+            nNonce,
+            wOffset
+	);
     }
 
     //! Check whether this block index entry is valid up to the passed validity level.
@@ -359,20 +373,24 @@ public:
         READWRITE(obj.nVersion);
         READWRITE(obj.hashPrev);
         READWRITE(obj.hashMerkleRoot);
+        READWRITE(obj.nP1);
         READWRITE(obj.nTime);
         READWRITE(obj.nBits);
         READWRITE(obj.nNonce);
+	    READWRITE(obj.wOffset);
     }
 
     uint256 GetBlockHash() const
     {
         CBlockHeader block;
-        block.nVersion        = nVersion;
-        block.hashPrevBlock   = hashPrev;
-        block.hashMerkleRoot  = hashMerkleRoot;
-        block.nTime           = nTime;
-        block.nBits           = nBits;
-        block.nNonce          = nNonce;
+        block.nVersion            = nVersion;
+        block.hashPrevBlock       = hashPrev;
+        block.hashMerkleRoot      = hashMerkleRoot;
+        block.nP1                 = nP1;
+        block.nTime               = nTime;
+        block.nBits               = nBits;
+        block.nNonce              = nNonce;
+        block.wOffset             = wOffset;
         return block.GetHash();
     }
 

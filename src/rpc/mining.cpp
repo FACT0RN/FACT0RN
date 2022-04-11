@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <assert.h>
 #include <amount.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -111,6 +112,9 @@ static RPCHelpMan getnetworkhashps()
 
 static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, uint64_t& max_tries, unsigned int& extra_nonce, uint256& block_hash)
 {
+    // Coded for nBits <= 64 for now. See note bellow.
+    assert( block.nBits <= 64);
+
     block_hash.SetNull();
 
     {
@@ -120,10 +124,128 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, uint64_t& 
 
     CChainParams chainparams(Params());
 
-    while (max_tries > 0 && block.nNonce < std::numeric_limits<uint32_t>::max() && !CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus()) && !ShutdownRequested()) {
-        ++block.nNonce;
-        --max_tries;
-    }
+    //Filter out small primes
+    const uint64_t small_primes = 3ULL*5ULL*7ULL*11ULL*13UL*17UL*19ULL*23ULL*29ULL*31ULL*37ULL*41ULL*43ULL*47ULL;
+    const int64_t tilden = 16ULL*block.nBits;
+
+    //Initialize g,n for pollard rho. 
+    //  n is number to be factored
+    //  g will contain the first factor obtained
+    mpz_t n; mpz_t g; mpz_t gcd_value;
+    mpz_inits( n, g, gcd_value, NULL );
+
+    //TODO: adapt to nBit > 64, since this will mostly be used for testing I stopped short of implementing the general
+    //      version. Only thing needed is to code W = gHash into a mpz type. But this should do for now.
+    do {    
+       bool try_again = true;
+
+        while(try_again){
+            ++block.nNonce;
+            --max_tries;
+
+            uint1024 w = gHash( block, chainparams.GetConsensus() );
+            uint64_t W = ((uint64_t*)w.u8_begin())[0];
+            uint64_t one = ( (W & 1) ) ? 0: 1;
+
+            //Make sure W has nBits
+            mpz_set_ui( n, W);
+            assert( mpz_sizeinbase(n,2) == block.nBits ); 
+
+            //Check in the allowed range
+            for( int jj=0; jj < tilden ; jj += 2){
+                uint64_t N1 = W + jj + one;
+                uint64_t N2 = W - jj - one;
+
+                //Set our candidate in mpz land
+                mpz_set_ui( n, N1);
+
+                //Compute gcd for N1
+                mpz_gcd_ui( gcd_value, n, small_primes );
+
+                //Sieve numbers with small prime factors.
+                if( mpz_cmp_ui(gcd_value, 1) == 0 ){
+
+                    //Factor using Pollard Rho
+                    int valid = rho(g,n);
+                    int bitsize = mpz_sizeinbase(g,2);
+
+                    //Check that both g and n/g are prime. 
+                    //Note the case when g=1 and n si prime is covered.
+                    //Also check that g has the right bitsize
+                    if ( (valid == 1) && (bitsize == (block.nBits>>1) ) ){ 
+                        uint64_t factor1 = mpz_get_ui(g);
+
+                        //Assert factor1 divides N1
+                        assert( N1%factor1 == 0);
+
+                        //Smallest of the two primes is required for the blockchain.
+                        //Blockchain will check and reject if smaller factor is given.
+                        uint64_t factor2 = N1/factor1;
+                        uint64_t factor  = std::min(factor1, factor2);
+
+                        //Check edge case. Cofactor must be have the same number of bits as the other factor.
+                        int edge_check =  factor2 & ( 1ULL << (bitsize-1) ); 
+
+                        //Enforce check
+                        if( (edge_check != 0) && (factor != 32768ULL) ){
+                            
+                            //Update block
+                            uint64_t* data = (uint64_t*)block.nP1.u8_begin_write();
+                            data[0]        = factor;
+                            block.wOffset  = jj + one;
+
+                            //Stop looping
+                            try_again = false;
+                            break;
+                        }
+                    }
+                }
+
+                //Set our candidate in mpz land for N2.
+                mpz_set_ui( n, N2);
+
+                //Compute gcd for N2.
+                mpz_gcd_ui( gcd_value, n, small_primes );
+
+                //Sieve numbers with small prime factors.
+                if( mpz_cmp_ui(gcd_value, 1) == 0){
+
+                    //Factor using Pollard Rho
+                    int valid = rho(g,n);
+                    int bitsize = mpz_sizeinbase(g,2);
+
+                    //Check that both g and n/g are prime. 
+                    //Note the case when g=1 and n si prime is covered.
+                    //Also check that g has the right bitsize
+                    if ( (valid == 1) && (bitsize == (block.nBits>>1) ) ){ 
+                        uint64_t factor1 = mpz_get_ui(g);
+
+                        //Smallest of the two primes is required for the blockchain.
+                        //Blockchain will check and reject if smaller factor is given.
+                        uint64_t factor2 = N2/factor1;
+                        uint64_t factor  = std::min(factor1, factor2);
+
+                        //Check edge case. Cofactor must be have the same number of bits as the other factor.
+                        int edge_check =  factor2 & ( 1ULL << (bitsize-1) ); 
+
+                        //Enforce check
+                        if( (edge_check != 0) && ( factor != 32768UL )  ){
+
+                            //Update block
+                            uint64_t* data = (uint64_t*)block.nP1.u8_begin_write();
+                            data[0]        = factor;
+                            block.wOffset  = -jj - one;
+
+                            //Stop looping
+                            try_again = false; 
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    } while (max_tries > 0 && block.nNonce < std::numeric_limits<uint32_t>::max() && !CheckProofOfWork(block, chainparams.GetConsensus()) && !ShutdownRequested());
+
     if (max_tries == 0 || ShutdownRequested()) {
         return false;
     }
@@ -321,7 +443,7 @@ static RPCHelpMan generateblock()
     const auto address_or_descriptor = request.params[0].get_str();
     CScript coinbase_script;
     std::string error;
-
+   
     if (!getScriptFromDescriptor(address_or_descriptor, coinbase_script, error)) {
         const auto destination = DecodeDestination(address_or_descriptor);
         if (!IsValidDestination(destination)) {
@@ -375,7 +497,7 @@ static RPCHelpMan generateblock()
 
     CHECK_NONFATAL(block.vtx.size() == 1);
 
-    // Add transactions
+    //Add transactions
     block.vtx.insert(block.vtx.end(), txs.begin(), txs.end());
     RegenerateCommitments(block, chainman);
 
@@ -588,7 +710,7 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::NUM, "sizelimit", "limit of block size"},
                 {RPCResult::Type::NUM, "weightlimit", "limit of block weight"},
                 {RPCResult::Type::NUM_TIME, "curtime", "current timestamp in " + UNIX_EPOCH_TIME},
-                {RPCResult::Type::STR, "bits", "compressed target of next block"},
+                {RPCResult::Type::STR, "bits", "Bitsize to factor for this block."},
                 {RPCResult::Type::NUM, "height", "The height of the next block"},
                 {RPCResult::Type::STR, "default_witness_commitment", /* optional */ true, "a valid witness commitment for the unmodified block template"},
             }},
@@ -671,14 +793,14 @@ static RPCHelpMan getblocktemplate()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
 
     if (!Params().IsTestChain()) {
-        const CConnman& connman = EnsureConnman(node);
-        if (connman.GetNodeCount(ConnectionDirection::Both) == 0) {
-            throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, PACKAGE_NAME " is not connected!");
-        }
+        //const CConnman& connman = EnsureConnman(node);
+        //if (connman.GetNodeCount(ConnectionDirection::Both) == 0) {
+        //    throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, PACKAGE_NAME " is not connected!");
+        //}
 
-        if (active_chainstate.IsInitialBlockDownload()) {
-            throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, PACKAGE_NAME " is in initial sync and waiting for blocks...");
-        }
+        //if (active_chainstate.IsInitialBlockDownload()) {
+        //    throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, PACKAGE_NAME " is in initial sync and waiting for blocks...");
+        //}
     }
 
     static unsigned int nTransactionsUpdatedLast;
@@ -819,8 +941,6 @@ static RPCHelpMan getblocktemplate()
 
     UniValue aux(UniValue::VOBJ);
 
-    arith_uint256 hashTarget = arith_uint256().SetCompact(pblock->nBits);
-
     UniValue aMutable(UniValue::VARR);
     aMutable.push_back("time");
     aMutable.push_back("transactions");
@@ -893,14 +1013,15 @@ static RPCHelpMan getblocktemplate()
     }
 
     result.pushKV("previousblockhash", pblock->hashPrevBlock.GetHex());
+    result.pushKV("merkleroothash", pblock->hashMerkleRoot.GetHex());
     result.pushKV("transactions", transactions);
     result.pushKV("coinbaseaux", aux);
     result.pushKV("coinbasevalue", (int64_t)pblock->vtx[0]->vout[0].nValue);
     result.pushKV("longpollid", active_chain.Tip()->GetBlockHash().GetHex() + ToString(nTransactionsUpdatedLast));
-    result.pushKV("target", hashTarget.GetHex());
+    result.pushKV("target", GetNextWorkRequired(pindexPrev, pblock, consensusParams ) );
     result.pushKV("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1);
     result.pushKV("mutable", aMutable);
-    result.pushKV("noncerange", "00000000ffffffff");
+    result.pushKV("noncerange", "[-2^64, 2^64-1]");
     int64_t nSigOpLimit = MAX_BLOCK_SIGOPS_COST;
     int64_t nSizeLimit = MAX_BLOCK_SERIALIZED_SIZE;
     if (fPreSegWit) {
@@ -915,7 +1036,7 @@ static RPCHelpMan getblocktemplate()
         result.pushKV("weightlimit", (int64_t)MAX_BLOCK_WEIGHT);
     }
     result.pushKV("curtime", pblock->GetBlockTime());
-    result.pushKV("bits", strprintf("%08x", pblock->nBits));
+    result.pushKV("bits",  pblock->nBits);
     result.pushKV("height", (int64_t)(pindexPrev->nHeight+1));
 
     if (consensusParams.signet_blocks) {

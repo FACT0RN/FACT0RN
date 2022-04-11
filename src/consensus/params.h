@@ -69,7 +69,6 @@ struct BIP9Deployment {
  */
 struct Params {
     uint256 hashGenesisBlock;
-    int nSubsidyHalvingInterval;
     /* Block hash that is excepted from BIP16 enforcement */
     uint256 BIP16Exception;
     /** Block height and hash at which BIP34 becomes active */
@@ -107,6 +106,12 @@ struct Params {
     uint256 nMinimumChainWork;
     /** By default assume that the signatures in ancestors of this block are valid */
     uint256 defaultAssumeValid;
+
+    //Number of Miller-Rabin rounds, determines primality with false positive rate of 4^(-rounds).
+    uint16_t MillerRabinRounds;
+
+    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
+    uint32_t hashRounds;
 
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution

@@ -54,6 +54,38 @@ void base_blob<BITS>::SetHex(const char* psz)
     }
 }
 
+void uint1024::SetHex(const char* psz)
+{
+    memset(_data, 0, sizeof(_data));
+
+    // skip leading spaces
+    while (IsSpace(*psz))
+        psz++;
+
+    // skip 0x
+    if (psz[0] == '0' && ToLower(psz[1]) == 'x')
+        psz += 2;
+
+    // hex string to uint
+    size_t digits = 0;
+    while (::HexDigit(psz[digits]) != -1) 
+        digits++;
+    unsigned char* p1 = (unsigned char*)_data;
+    unsigned char* pend = p1 + sizeof(_data);
+    while (digits > 0 && p1 < pend) {
+        *p1 = ::HexDigit(psz[--digits]);
+        if (digits > 0) {
+            *p1 |= ((unsigned char)::HexDigit(psz[--digits]) << 4); 
+            p1++;
+        }
+    }   
+}
+
+void uint1024::SetHex(const std::string& str)
+{
+    SetHex(str.c_str());
+}
+
 template <unsigned int BITS>
 void base_blob<BITS>::SetHex(const std::string& str)
 {

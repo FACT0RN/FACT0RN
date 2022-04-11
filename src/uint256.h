@@ -11,6 +11,10 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <iostream>
 
 /** Template base class for fixed-sized opaque blobs. */
 template<unsigned int BITS>
@@ -46,7 +50,7 @@ public:
     friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
     friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }
     friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.Compare(b) < 0; }
-
+    
     std::string GetHex() const;
     void SetHex(const char* psz);
     void SetHex(const std::string& str);
@@ -147,6 +151,146 @@ inline uint256 uint256S(const char *str)
 inline uint256 uint256S(const std::string& str)
 {
     uint256 rv;
+    rv.SetHex(str);
+    return rv;
+}
+
+
+/** 1024-bit opaque blob.
+ */
+class uint1024 {
+    private:
+        //Internal data chosen as 64-bits to align with GMP limbs as 64 bits.
+        const int32_t LIMBS = 16;
+        uint64_t _data[16] = {0};
+     
+    public:
+
+	//In place shift operator.
+	uint1024 operator<<(const int32_t bitshift ) 
+    {
+        int wholeWordShift    = std::min( bitshift/64, LIMBS);
+	    int partialWordShift  = bitshift%64;
+        int slicedPoint       = LIMBS - 1 - wholeWordShift;
+
+	    //Shift final values into place
+	    for( int jj=0; jj < LIMBS - wholeWordShift; jj++){
+            int index = slicedPoint - jj;
+	        _data[LIMBS - 1 - jj] = ( _data[index] << partialWordShift) | (_data[index -1] >> (64 - partialWordShift)  );
+	    }
+
+        //Set words to zero
+	    for( int jj=0; jj < wholeWordShift; jj++)  _data[jj] = 0;
+
+        return *this;
+    }
+
+    // copy assignment
+    uint1024& operator=(const uint1024& other)
+    {
+        // Guard self assignment
+        if (this == &other)
+            return *this;
+    
+        //Copy the data
+        memcpy( _data, other.u8_begin_write(), sizeof(_data) );
+        return *this;
+    }
+
+	//Get pointer to the beginning of the data
+    const uint64_t* u64_begin() const
+	{
+	    return _data;
+	}
+
+	//Get pointer to the end of the data
+    const uint64_t* u64_end() const
+	{
+	    return &_data[LIMBS-1 ] ;
+	}
+
+	//Get pointer to the beginning of the data
+    const uint8_t* u8_begin() const
+	{
+	    return (uint8_t*)_data;
+	}
+
+	//Get pointer to the beginning of the data
+    uint8_t* u8_begin_write() const
+	{
+	    return (uint8_t*)_data;
+	}
+
+	//Get pointer to the end of the data
+    const uint8_t* u8_end() const
+	{
+	    return &((uint8_t*)_data)[ sizeof(_data) - 1 ] ;
+	}
+
+	void SetNull()
+	{
+	    memset(_data, 0, sizeof(_data) );
+	}
+
+    std::string ToString() const
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0');
+        for (int i = 0; i < LIMBS; ++i)
+        {
+            ss << std::setw(16) << _data[LIMBS - i - 1];
+        }
+	    return ss.str();
+    }
+
+    void SetHex(const char* psz);
+    void SetHex(const std::string& str);
+    
+	template<typename Stream>
+    void Serialize(Stream& s) const
+    {
+        s.write((char*)_data, sizeof(_data));
+    }
+
+    template<typename Stream>
+    void Unserialize(Stream& s)
+    {
+        s.read((char*)_data, sizeof(_data));
+    }
+
+	uint64_t bits() const
+	{
+            const int64_t WIDTH = 1024/64;
+	    for (int pos = WIDTH - 1; pos >= 0; pos--) {
+	        if (_data[pos]) {
+	            for (int nbits = 63; nbits >= 0; nbits--) {
+	                if (_data[pos] & 1ULL << nbits)
+	                    return 64 * pos + nbits + 1 ;
+	            }
+	            return 64 * pos ;
+	        }
+	    }   
+	    return 0;
+	}
+};
+
+/* uint1024 from const char *.
+ * This is a separate function because the constructor uint1024(const char*) can result
+ * in dangerously catching uint1024(0).
+ */
+inline uint1024 uint1024S(const char *str)
+{
+    uint1024 rv;
+    rv.SetHex(str);
+    return rv;
+}
+/* uint1024S from std::string.
+ * This is a separate function because the constructor uint256(const std::string &str) can result
+ * in dangerously catching uint1024(0) via std::string(const char*).
+ */
+inline uint1024 uint1024S(const std::string& str)
+{
+    uint1024 rv;
     rv.SetHex(str);
     return rv;
 }

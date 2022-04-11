@@ -52,6 +52,10 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
+#include <gmp.h>        /* Not extrictly needed*/
+#include <math.h>       /* log2 */
+#include <algorithm>
+
 #include <numeric>
 #include <optional>
 #include <string>
@@ -1183,17 +1187,67 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
     return nullptr;
 }
 
-CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
+CAmount GetBlockSubsidy( const CBlockHeader& block) 
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
+    //Get the bitsize of the given factor for this block.
+    mpz_t nP1;
+    mpz_init(nP1);
+	mpz_import( nP1, 16, -1, 8, 0, 0, block.nP1.u64_begin()); 
+    const uint16_t nP1_bitsize = mpz_sizeinbase(nP1, 2); 
+    mpz_clear(nP1);
 
-    CAmount nSubsidy = 50 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
-    return nSubsidy;
+    //if nP1_bitsize == 1, then that means this function is being called to
+	//create a TemplateBlock for mining; note that gmp returns 1 when the nP1 is 
+	//exactly 0 in the function mpz_sizeinbase. In that case, return 0 as the reward.
+	//This is to avoid blocks submitted and accepted without rewards.
+	//This will cause failure to validate after the miner factors the number,
+	//and submits his answer for the new block because that new block will
+	//enter this function upon validation with the right nP1_bitsize which 
+	//will not match 0.
+	if( nP1_bitsize == 1){
+	    return 0;
+	}
+
+    //Sanity checks
+    assert( nP1_bitsize > 1 );
+
+    // For a given bitsize b, consider all the semi-primes whose factors have exactly b digits in binary.
+    // Then, ~60% of these semiprimes are of bitsize 2b and 40% are of bitsize 2b-1. These values were
+    // observed heuristically, and it means for odd 'nBits' on the blockchain we can demand b digit factors
+    // as they are abundant enough(40%) and reward miners as if nBits was nBits + 1, because of that 10% scarcity.
+    // 
+    // In this manner we balance the difficulty with a better reward than would have been otherwise given.
+    const uint16_t expected_bitsize = (block.nBits >> 1) + (block.nBits&1); 
+
+    //Enforce that the given factor is of the expected size,
+    //and hence implying they must be the same size.
+    //
+    //Note: primality of the factors is not checked in this function,
+    //      but elsewhere in the chain of checks for validity.
+    if( expected_bitsize != nP1_bitsize ){
+        return 0;
+    }
+
+    //Compute reward function.
+    const double rConstant_co_scale = 11178600;
+    
+    //Compute exponent
+    const double exp = ( nP1_bitsize )/32.0f ;
+
+    //Compute reward term
+    const double reward = rConstant_co_scale*pow( 2, exp );
+
+    //The reward is in satoshis.
+    //Because floating point arithmetic is not precise,
+    //the reward term will be floored, and its low 10 bits will be set to 1.
+    //That is, we round up to the nearest 1024 satoshis and then substract one.
+    //We don't need this because we divided by a power of two for the exponent but just in case.
+    uint64_t rewardFinal = static_cast<uint64_t>(reward) | 1023ULL;
+
+    //Sanity check
+    assert( rewardFinal > 0);
+
+    return rewardFinal;
 }
 
 CoinsViews::CoinsViews(
@@ -1964,7 +2018,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, m_params.GetConsensus());
+    CAmount blockReward = nFees + GetBlockSubsidy(pindex->GetBlockHeader());
     if (block.vtx[0]->GetValueOut() > blockReward) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", block.vtx[0]->GetValueOut(), blockReward);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
@@ -3006,7 +3060,7 @@ void CChainState::ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pi
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
+    if (fCheckPOW && !CheckProofOfWork(block, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
@@ -3182,9 +3236,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
         return state.Invalid(BlockValidationResult::BLOCK_TIME_FUTURE, "time-too-new", "block timestamp too far in the future");
 
     // Reject blocks with outdated version
-    if ((block.nVersion < 2 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
-        (block.nVersion < 3 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_DERSIG)) ||
-        (block.nVersion < 4 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_CLTV))) {
+    if ((block.nVersion < 1 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_HEIGHTINCB)) ||
+        (block.nVersion < 1 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_DERSIG)) ||
+        (block.nVersion < 1 && DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_CLTV))) {
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
     }
@@ -3220,15 +3274,15 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
         }
     }
 
-    // Enforce rule that the coinbase starts with serialized block height
-    if (DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_HEIGHTINCB))
-    {
-        CScript expect = CScript() << nHeight;
-        if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
-            !std::equal(expect.begin(), expect.end(), block.vtx[0]->vin[0].scriptSig.begin())) {
-            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
-        }
-    }
+    //// Enforce rule that the coinbase starts with serialized block height
+    //if (DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_HEIGHTINCB))
+    //{
+    //    CScript expect = CScript() << nHeight;
+    //    if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
+    //        !std::equal(expect.begin(), expect.end(), block.vtx[0]->vin[0].scriptSig.begin())) {
+    //        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-height", "block height mismatch in coinbase");
+    //    }
+    //}
 
     // Validation for witness commitments.
     // * We compute the witness hash (which is the hash including witnesses) of all the block's transactions, except the
@@ -3532,6 +3586,10 @@ bool TestBlockValidity(BlockValidationState& state,
     indexDummy.pprev = pindexPrev;
     indexDummy.nHeight = pindexPrev->nHeight + 1;
     indexDummy.phashBlock = &block_hash;
+    indexDummy.nP1 = block.nP1;
+    indexDummy.wOffset = block.wOffset;
+    indexDummy.nBits = block.nBits;
+    indexDummy.nVersion = block.nVersion;
 
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, state, chainstate.m_blockman, chainparams, pindexPrev, GetAdjustedTime()))
