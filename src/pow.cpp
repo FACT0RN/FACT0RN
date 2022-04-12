@@ -30,7 +30,6 @@
 uint16_t GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     assert(pindexLast != nullptr);
-    uint16_t nProofOfWorkLimit = 32; 
 
     // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
@@ -41,14 +40,17 @@ uint16_t GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *
             // If the new block's timestamp is more than 2* 10 minutes
             // then allow mining of a min-difficulty block.
             if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2){
-                return nProofOfWorkLimit;
+                return params.powLimit;
             }
             else
             {
                 // Return the last non-special-min-difficulty-rules-block
                 const CBlockIndex* pindex = pindexLast;
-                while (pindex->pprev && pindex->nHeight % params.DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
+                while (pindex->pprev && pindex->nHeight % params.DifficultyAdjustmentInterval() != 0 &&
+                       pindex->nBits == params.powLimit)
+                {
                     pindex = pindex->pprev;
+                }
                 return pindex->nBits;
             }
         }
