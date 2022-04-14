@@ -45,8 +45,8 @@ static CBlock CreateGenesisBlock(
     if( nTime == 1645682572UL){ //Regtest
         genesis.nP1      = uint1024S("0xbaa1");
     }
-    else if ( nTime == 1649693313ULL ){ //Testnet 
-        genesis.nP1      = uint1024S("0x14dc10c223e2feddd76b741eba7");
+    else if ( nTime == 1649956202ULL ){ //Testnet 
+        genesis.nP1      = uint1024S("0x3701a19826a2e66aafc27f1446733");
     } else { //Mainnet
         genesis.nP1      = uint1024S("0x12823e85cc47e075866faa7f4e3");
     }
@@ -195,7 +195,7 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = CBaseChainParams::TESTNET;
-        genesis = CreateGenesisBlock( 1649693313ULL,  128ULL, 210,  0, 2021, 0);
+        genesis = CreateGenesisBlock( 1649956202ULL,  0ULL, 228,  0, -969, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
