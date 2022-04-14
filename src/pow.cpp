@@ -262,105 +262,105 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
     for(int round =0; round < roundsTotal; round++ ){
 
         ///////////////////////////////////////////////////////////////
-	    //      Memory Expensive Scrypt: 8MB required.              //
-	    ///////////////////////////////////////////////////////////////
-	    scrypt.DeriveKey(        derived,  //Final hash
-                          derived.size(),  //Final hash number of bytes
-             (const byte*)derived.data(),  //Input hash
-                          derived.size(),  //Input hash number of bytes 
-                                    salt,  //Salt
-                            sizeof(salt),  //Salt bytes
-                                       N,  //Number of rounds
-                                       r,  //Sequential Read Sisze
-                                       p   //Parallelizable iterations
+	//      Memory Expensive Scrypt: 8MB required.              //
+	///////////////////////////////////////////////////////////////
+	scrypt.DeriveKey(        derived,  //Final hash
+                      derived.size(),  //Final hash number of bytes
+         (const byte*)derived.data(),  //Input hash
+                      derived.size(),  //Input hash number of bytes 
+                                salt,  //Salt
+                        sizeof(salt),  //Salt bytes
+                                   N,  //Number of rounds
+                                   r,  //Sequential Read Sisze
+                                   p   //Parallelizable iterations
         );
 
-	    ///////////////////////////////////////////////////////////////
-	    //   Add different types of hashes to the core.              //
-	    ///////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////
+	//   Add different types of hashes to the core.              //
+	///////////////////////////////////////////////////////////////
         //Count the bits in previous hash.
         uint64_t pcnt_half1 = popcnt(      derived.data(), 128 );
         uint64_t pcnt_half2 = popcnt( &derived.data()[128], 128 );
 
         //Hash the first 1024-bits of the 2048-bits hash.
         if( pcnt_half1 % 2 == 0 ){
-        	BLAKE2b bHash;
-        	bHash.Update((const byte*)derived.data(), 128 );
-        	bHash.Final((byte*)derived.data());
-	    }else{
-        	SHA3_512 bHash;
-        	bHash.Update((const byte*)derived.data(), 128 );
-        	bHash.Final((byte*)derived.data());
-	    }
+            BLAKE2b bHash;
+            bHash.Update((const byte*)derived.data(), 128 );
+            bHash.Final((byte*)derived.data());
+	}else{
+            SHA3_512 bHash;
+            bHash.Update((const byte*)derived.data(), 128 );
+       	    bHash.Final((byte*)derived.data());
+	}
 
         //Hash the second 1024-bits of the 2048-bits hash.
         if( pcnt_half2 % 2 == 0 ){
-        	BLAKE2b bHash;
-        	bHash.Update((const byte*)(&derived.data()[128]), 128 );
-        	bHash.Final((byte*)(&derived.data()[128]) );
+            BLAKE2b bHash;
+            bHash.Update((const byte*)(&derived.data()[128]), 128 );
+            bHash.Final((byte*)(&derived.data()[128]) );
         } else {
-	        SHA3_512 bHash;
-        	bHash.Update((const byte*)(&derived.data()[128]), 128 );
-        	bHash.Final((byte*)(&derived.data()[128]) );
-	    }
+	    SHA3_512 bHash;
+       	    bHash.Update((const byte*)(&derived.data()[128]), 128 );
+            bHash.Final((byte*)(&derived.data()[128]) );
+	}
 
-	    //////////////////////////////////////////////////////////////
-	    // Perform expensive math opertions plus simple hashing     //
-	    //////////////////////////////////////////////////////////////
-	    //Find the next prime using the current hash as the starting number
+	//////////////////////////////////////////////////////////////
+	// Perform expensive math opertions plus simple hashing     //
+	//////////////////////////////////////////////////////////////
+	//Find the next prime using the current hash as the starting number
         mpz_import( starting_number_mpz, 32, -1, 8, 0, 0, derived.data() );
-	    mpz_nextprime( prime_mpz, starting_number_mpz);
+	mpz_nextprime( prime_mpz, starting_number_mpz);
 
-	    //Take the integer part of the square root of the hash digest at this point
+	//Take the integer part of the square root of the hash digest at this point
         mpz_import( a_mpz, 32, -1, 8, 0, 0, derived.data() );
-	    mpz_sqrt( a_mpz, a_mpz);
+	mpz_sqrt( a_mpz, a_mpz);
 
-	    //Compute a^(-1) Mod prime_mpz
-	    mpz_invert( a_inverse_mpz, a_mpz, prime_mpz);
+	//Compute a^(-1) Mod prime_mpz
+	mpz_invert( a_inverse_mpz, a_mpz, prime_mpz);
 
-	    //Xor into current hash digest.
-	    size_t words = 0;
+	//Xor into current hash digest.
+	size_t words = 0;
         uint64_t data[32] = {0};
         uint64_t *hDigest = (uint64_t *) derived.data();	
         mpz_export( data, &words , -1, 8, 0, 0, a_inverse_mpz );
-	    for(int jj=0; jj < 32; jj++)  hDigest[jj] ^= data[jj]; 
+	for(int jj=0; jj < 32; jj++)  hDigest[jj] ^= data[jj]; 
 
         //Check that at most 2048-bits were written
-	    //Assume 64-bit limbs.
-	    assert( words <= 32);
+	//Assume 64-bit limbs.
+	assert( words <= 32);
 
         //Compute the population count of a_inverse
-	    const int32_t irounds   = popcnt( data , sizeof(data)  ) ;
-           
-	    //Branch away
-	    for( int jj=0; jj < irounds; jj++){    	
+	const int32_t irounds   = popcnt( data , sizeof(data)  ) ;
+        
+	//Branch away
+	for( int jj=0; jj < irounds; jj++){    	
             const int32_t br = popcnt( derived.data(), sizeof(derived.data())  );
 
-	        //Power mod
-	        mpz_powm_ui(a_inverse_mpz, a_inverse_mpz, irounds, prime_mpz  );
+	    //Power mod
+	    mpz_powm_ui(a_inverse_mpz, a_inverse_mpz, irounds, prime_mpz  );
 
             //Get the data out of gmp
             mpz_export( data, &words , -1, 8, 0, 0, a_inverse_mpz );
-	        assert( words <= 32 );
+	    assert( words <= 32 );
 
-	        for(int jj=0; jj < 32; jj++)  hDigest[jj] ^= data[jj]; 
+	    for(int jj=0; jj < 32; jj++)  hDigest[jj] ^= data[jj]; 
 
             if( br % 3 == 0 )
-	        {
-            	SHA3_512 bHash;
-            	bHash.Update((const byte*)derived.data(), 128 );
-            	bHash.Final(       (byte*)derived.data()      );
-	        } else if ( br % 3 == 2)
-	        {
-            	BLAKE2b sHash;
-            	sHash.Update((const byte*)(&derived.data()[128]), 128 );
-            	sHash.Final(       (byte*)(&derived.data()[192])      );
-	        } else {
+	    {
+                SHA3_512 bHash;
+                bHash.Update((const byte*)derived.data(), 128 );
+                bHash.Final(       (byte*)derived.data()      );
+	    } else if ( br % 3 == 2)
+	    {
+                BLAKE2b sHash;
+                sHash.Update((const byte*)(&derived.data()[128]), 128 );
+                sHash.Final(       (byte*)(&derived.data()[192])      );
+	    } else {
                 Whirlpool wHash;
-	            wHash.Update((const byte*)(derived.data()), 256);
-	            wHash.Final((byte*)(&derived.data()[112])  );
-	        }
+	        wHash.Update((const byte*)(derived.data()), 256);
+	        wHash.Final((byte*)(&derived.data()[112])  );
 	    }
+	}
 
     }
     
