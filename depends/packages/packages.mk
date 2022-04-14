@@ -1,4 +1,4 @@
-packages:=boost libevent
+packages:=boost libevent cryptopp
 
 qrencode_packages = qrencode
 
