@@ -239,7 +239,7 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
     ////////////////////////////////////////////////////////////////////////////////
     Scrypt scrypt;
     word64 N = 1ULL << 12;
-    word64 r = 1ULL << 4;
+    word64 r = 1ULL << 1;
     word64 p = 1ULL; 
     SecByteBlock derived(256);
 
@@ -262,7 +262,7 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
     for(int round =0; round < roundsTotal; round++ ){
 
         ///////////////////////////////////////////////////////////////
-	//      Memory Expensive Scrypt: 8MB required.              //
+	//      Memory Expensive Scrypt: 1MB required.              //
 	///////////////////////////////////////////////////////////////
 	scrypt.DeriveKey(        derived,  //Final hash
                       derived.size(),  //Final hash number of bytes
@@ -307,15 +307,14 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
 	//////////////////////////////////////////////////////////////
 	// Perform expensive math opertions plus simple hashing     //
 	//////////////////////////////////////////////////////////////
-	//Find the next prime using the current hash as the starting number
-        mpz_import( starting_number_mpz, 32, -1, 8, 0, 0, derived.data() );
-	mpz_nextprime( prime_mpz, starting_number_mpz);
+        //Use the current hash to compute grunt work.
+        mpz_import( starting_number_mpz, 32, -1, 8, 0, 0, derived.data() ); // -> M = 2048-hash
+        mpz_sqrt( starting_number_mpz, starting_number_mpz);                // - \ a = floor( M^(1/2) )
+        mpz_set(                a_mpz, starting_number_mpz);                // - /
+        mpz_sqrt( starting_number_mpz, starting_number_mpz);                // - \ p = floor( a^(1/2) )
+        mpz_nextprime(      prime_mpz, starting_number_mpz);                // - /
 
-	//Take the integer part of the square root of the hash digest at this point
-        mpz_import( a_mpz, 32, -1, 8, 0, 0, derived.data() );
-	mpz_sqrt( a_mpz, a_mpz);
-
-	//Compute a^(-1) Mod prime_mpz
+	//Compute a^(-1) Mod p
 	mpz_invert( a_inverse_mpz, a_mpz, prime_mpz);
 
 	//Xor into current hash digest.
@@ -330,7 +329,7 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
 	assert( words <= 32);
 
         //Compute the population count of a_inverse
-	const int32_t irounds   = popcnt( data , sizeof(data)  ) ;
+	const int32_t irounds   = popcnt( data , sizeof(data)  ) & 0x7f;
         
 	//Branch away
 	for( int jj=0; jj < irounds; jj++){    	
