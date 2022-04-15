@@ -97,7 +97,7 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     //First, generate the random seed submited for this block
     uint1024 w = gHash( block, params );
 
-    //Check that |block->offset| <= \tilde{n} = 15 * |n|_2.
+    //Check that |block->offset| <= \tilde{n} = 16 * |n|_2.
     uint64_t abs_offset = ( block.wOffset > 0) ? block.wOffset: - block.wOffset;
 
     if (  abs_offset > 16 * block.nBits ){
