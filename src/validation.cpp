@@ -1192,21 +1192,21 @@ CAmount GetBlockSubsidy( const CBlockHeader& block)
     //Get the bitsize of the given factor for this block.
     mpz_t nP1;
     mpz_init(nP1);
-	mpz_import( nP1, 16, -1, 8, 0, 0, block.nP1.u64_begin()); 
+    mpz_import( nP1, 16, -1, 8, 0, 0, block.nP1.u64_begin()); 
     const uint16_t nP1_bitsize = mpz_sizeinbase(nP1, 2); 
     mpz_clear(nP1);
 
     //if nP1_bitsize == 1, then that means this function is being called to
-	//create a TemplateBlock for mining; note that gmp returns 1 when the nP1 is 
-	//exactly 0 in the function mpz_sizeinbase. In that case, return 0 as the reward.
-	//This is to avoid blocks submitted and accepted without rewards.
-	//This will cause failure to validate after the miner factors the number,
-	//and submits his answer for the new block because that new block will
-	//enter this function upon validation with the right nP1_bitsize which 
-	//will not match 0.
-	if( nP1_bitsize == 1){
-	    return 0;
-	}
+    //create a TemplateBlock for mining; note that gmp returns 1 when the nP1 is 
+    //exactly 0 in the function mpz_sizeinbase. In that case, return 0 as the reward.
+    //This is to avoid blocks submitted and accepted without rewards.
+    //This will cause failure to validate after the miner factors the number,
+    //and submits his answer for the new block because that new block will
+    //enter this function upon validation with the right nP1_bitsize which 
+    //will not match 0.
+    if( nP1_bitsize == 1){
+        return 0;
+    }
 
     //Sanity checks
     assert( nP1_bitsize > 1 );
