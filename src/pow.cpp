@@ -187,7 +187,6 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
     uint256  hashPrevBlock       = block.hashPrevBlock;
     uint256  hashMerkleRoot      = block.hashMerkleRoot;
     uint64_t nNonce              = block.nNonce;
-    int64_t  wOffset             = block.wOffset;
     uint32_t nTime               = block.nTime;
     int32_t  nVersion            = block.nVersion;
     uint16_t nBits               = block.nBits;
