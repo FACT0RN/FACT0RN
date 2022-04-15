@@ -76,15 +76,15 @@ uint16_t CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirst
     const double  nPeriodTimeProportionConsumed = (double)nActualTimespan/(double)params.nPowTargetTimespan;    
 
     //Handle extremes
-    if( nPeriodTimeProportionConsumed >= 1.40f)
-        return (int32_t)pindexLast->nBits - 4;
-    if( nPeriodTimeProportionConsumed <= 0.60)
-        return (int32_t)pindexLast->nBits + 4;
+    if( nPeriodTimeProportionConsumed >= (1.00f + params.maxLilt))
+        return (int32_t)pindexLast->nBits - params.maxRetargetDelta;
+    if( nPeriodTimeProportionConsumed <= (1.00f - params.maxLilt))
+        return (int32_t)pindexLast->nBits + params.maxRetargetDelta;
 
     //Compute Retargeting function
-    const int32_t condition = nPeriodTimeProportionConsumed > 1; 
-    const int32_t maxAdjust = ( condition ) ? -4: 4;
-    const double         Fx = (1.0f)/(2*nPeriodTimeProportionConsumed - 1 - 2*condition) - 1 + 2*condition; 
+    const int32_t condition = nPeriodTimeProportionConsumed > 1;
+    const int32_t maxAdjust = ( condition ) ? -params.maxRetargetDelta : params.maxRetargetDelta;
+    const double         Fx = (1.0f)/(2*nPeriodTimeProportionConsumed - 1 - 2*condition) - 1 + 2*condition;
     const int32_t   roundFx = round( Fx );
     const int32_t nRetarget = condition ? std::max( maxAdjust, roundFx ) : std::min( maxAdjust, roundFx ) ;
 
