@@ -8,6 +8,7 @@
 #include <arith_uint256.h>
 #include <chain.h>
 #include <primitives/block.h>
+#include <logging.h>
 #include <uint256.h>
 #include <algorithm>  //min and max.
 #include <iostream>
@@ -101,7 +102,7 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     uint64_t abs_offset = ( block.wOffset > 0) ? block.wOffset: - block.wOffset;
 
     if (  abs_offset > 16 * block.nBits ){
-        std::cout << "wOffset value does not validate." <<std::endl;
+        LogPrintf("PoW error: invalid wOffset\n");
         return false;
     }
 
@@ -118,15 +119,15 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     	mpz_sub_ui(n, W, abs_offset); 
     }
 
-    gmp_printf("  W: %Zd \n", W);
-    gmp_printf("  N: %Zd \n", n);
+    LogPrint(BCLog::POW, "  W: %s\n", mpz_get_str(NULL, 10, W));
+    LogPrint(BCLog::POW, "  N: %s\n", mpz_get_str(NULL, 10, n));
 
     //Clear memory for W.
     mpz_clear(W);
 
     //Check the number n has nBits
-    if( mpz_sizeinbase(n, 2) != block.nBits){
-       std::cout << "nBits value does not validate. Expected nBits = "<< block.nBits <<", actual value is " << mpz_sizeinbase(n, 2) << ". "  <<std::endl;
+    if (mpz_sizeinbase(n, 2) != block.nBits) {
+       LogPrintf("pow error: invalid nBits: expected %d, actual %d\n", block.nBits,  mpz_sizeinbase(n, 2));
        mpz_clear(n);
        return false; 
     }
@@ -137,10 +138,10 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     mpz_init( nP2 );
     mpz_import( nP1, 16 , -1, 8, 0, 0, block.nP1.u64_begin() );
     mpz_tdiv_q(nP2, n, nP1);
-    
-    gmp_printf("nP1: %Zd \n", nP1);
-    gmp_printf("nP2: %Zd \n", nP2);
-    
+
+    LogPrint(BCLog::POW, "nP1: %s\n", mpz_get_str(NULL, 10, nP1));
+    LogPrint(BCLog::POW, "nP2: %s\n", mpz_get_str(NULL, 10, nP2));
+
     //Check nP1 is a factor
     mpz_t n_check;
     mpz_init( n_check );
@@ -149,10 +150,7 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     //Check that nP1*nP2 == n and that nP1 <= nP2.
     if( (mpz_cmp(n_check, n) != 0) || (mpz_cmp(nP1, nP2) > 0)   )
     {
-        std::cout << "nP1 value does not validate." <<std::endl;
-        gmp_printf("N   = %Zd \n", n);
-        gmp_printf("nP1 = %Zd \n", nP1);
-        std::cout << "nP1 does not divide N or nP1 >= nP2. Likely, the former." << std::endl;
+        LogPrintf("pow error: invalid nP1: N=%s nP1=%s\n", mpz_get_str(NULL, 10, n), mpz_get_str(NULL, 10, nP1));
         mpz_clear(n);
         mpz_clear(nP1);
         mpz_clear(nP2);
@@ -174,8 +172,8 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
 
     //Check they are both prime
     if ( is_nP1_prime == 0 || is_nP2_prime == 0){
-        std::cout << "At least 1 composite factor found. Reject submission." <<std::endl;
-	return false;
+        LogPrintf("pow error: At least 1 composite factor found, rejected.\n");
+        return false;
     }
 
     return true;
