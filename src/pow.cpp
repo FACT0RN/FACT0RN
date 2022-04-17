@@ -74,20 +74,23 @@ uint16_t CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirst
 
     // Compute constants
     const int64_t               nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
-    const double  nPeriodTimeProportionConsumed = (double)nActualTimespan/(double)params.nPowTargetTimespan;    
+    const double  nPeriodTimeProportionConsumed = (double)nActualTimespan/(double)params.nPowTargetTimespan; 
 
-    //Handle extremes
-    if( nPeriodTimeProportionConsumed >= (1.00f + params.maxLilt))
-        return (int32_t)pindexLast->nBits - params.maxRetargetDelta;
-    if( nPeriodTimeProportionConsumed <= (1.00f - params.maxLilt))
-        return (int32_t)pindexLast->nBits + params.maxRetargetDelta;
+    //Variable to set difficulty delta
+    int32_t nRetarget = 0;
 
-    //Compute Retargeting function
-    const int32_t condition = nPeriodTimeProportionConsumed > 1;
-    const int32_t maxAdjust = ( condition ) ? -params.maxRetargetDelta : params.maxRetargetDelta;
-    const double         Fx = (1.0f)/(2*nPeriodTimeProportionConsumed - 1 - 2*condition) - 1 + 2*condition;
-    const int32_t   roundFx = round( Fx );
-    const int32_t nRetarget = condition ? std::max( maxAdjust, roundFx ) : std::min( maxAdjust, roundFx ) ;
+    //Note for mainnet:
+    //If it takes more than 1 minute over the target blocktime, reduce difficulty.
+    if ( nPeriodTimeProportionConsumed >  1.0333f )
+        nRetarget = -1; 
+    
+    //Note for mainnet:
+    //To increase difficulty the network must be able to move the blocktime
+    //3 minutes under target blocktime. This is to avoid the difficulty becoming 
+    //too much work for the network to handle. Based on heuristics.
+    if ( nPeriodTimeProportionConsumed < 0.90f )
+        nRetarget = 1; 
+
 
     return (int32_t)pindexLast->nBits + nRetarget; 
 }

@@ -97,13 +97,13 @@ public:
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = 210;
         consensus.maxLilt = 0.40f;
-        consensus.maxRetargetDelta = 4;
+        consensus.maxRetargetDelta = 1;
         consensus.nPowTargetTimespan = 14ULL * 24ULL * 60ULL * 60ULL; // 14 Days * 24 Hours * 60 Minutes * 60 Seconds |-> Seconds in 2 weeks.
         consensus.nPowTargetSpacing  =   30 * 60;                     // 30 Minutes * 60 Seconds                      |-> Seconds in 30 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting  = false;
         consensus.nRuleChangeActivationThreshold = 100;
-        consensus.nMinerConfirmationWindow = 10; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.nMinerConfirmationWindow = 672; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
