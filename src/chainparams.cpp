@@ -96,8 +96,6 @@ public:
         consensus.SegwitHeight = 1; 
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = 210;
-        consensus.maxLilt = 0.40f;
-        consensus.maxRetargetDelta = 1;
         consensus.nPowTargetTimespan = 14ULL * 24ULL * 60ULL * 60ULL; // 14 Days * 24 Hours * 60 Minutes * 60 Seconds |-> Seconds in 2 weeks.
         consensus.nPowTargetSpacing  =   30 * 60;                     // 30 Minutes * 60 Seconds                      |-> Seconds in 30 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -209,8 +207,6 @@ public:
         consensus.SegwitHeight = 1; 
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = 175;
-        consensus.maxLilt = 0.40f;
-        consensus.maxRetargetDelta = 4;
         consensus.nPowTargetTimespan = 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 5 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
@@ -359,8 +355,6 @@ public:
         consensus.nMinerConfirmationWindow = 672; // nPowTargetTimespan / nPowTargetSpacing
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = 32;
-        consensus.maxLilt = 0.40f;
-        consensus.maxRetargetDelta = 4;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -426,8 +420,6 @@ public:
         consensus.SegwitHeight = 1; 
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = 32;
-        consensus.maxLilt = 0.40f;
-        consensus.maxRetargetDelta = 4;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 30 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
