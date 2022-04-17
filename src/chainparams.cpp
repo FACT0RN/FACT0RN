@@ -42,13 +42,13 @@ static CBlock CreateGenesisBlock(
     genesis.wOffset  = wOffset;
    
     //Genesis parameters for different networks on FACT0RN.
-    if( nTime == 1645682572UL){ //Regtest
-        genesis.nP1      = uint1024S("0xbaa1");
+    if( nTime == 1645682572UL){                
+        genesis.nP1      = uint1024S("0xbaa1");                          //Regtest
     }
-    else if ( nTime == 1649956202ULL ){ //Testnet 
-        genesis.nP1      = uint1024S("0x3701a19826a2e66aafc27f1446733");
-    } else { //Mainnet
-        genesis.nP1      = uint1024S("0x12823e85cc47e075866faa7f4e3");
+    else if ( nTime == 1650212871ULL ){ 
+        genesis.nP1      = uint1024S("0x2ca15da318796b578a3952091fd93"); //Testnet
+    } else {                           
+        genesis.nP1      = uint1024S("0x450e01ea669bc906153d6d1394a2b");   //Mainnet
     }
 
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
@@ -83,7 +83,7 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = CBaseChainParams::MAIN;
-        genesis = CreateGenesisBlock(1644782451, 0xcafebeef, 210, 0, -1280LL,  0);
+        genesis = CreateGenesisBlock( 1650212239 , 9225410068863233824ULL, 230, 0 , 3636LL,  0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
@@ -95,7 +95,7 @@ public:
         consensus.CSVHeight    = 1; 
         consensus.SegwitHeight = 1; 
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
-        consensus.powLimit = 210;
+        consensus.powLimit = 230;
         consensus.nPowTargetTimespan = 14ULL * 24ULL * 60ULL * 60ULL; // 14 Days * 24 Hours * 60 Minutes * 60 Seconds |-> Seconds in 2 weeks.
         consensus.nPowTargetSpacing  =   30 * 60;                     // 30 Minutes * 60 Seconds                      |-> Seconds in 30 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -195,7 +195,7 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = CBaseChainParams::TESTNET;
-        genesis = CreateGenesisBlock( 1649956202ULL,  0ULL, 228,  0, -969, 0);
+        genesis = CreateGenesisBlock( 1650212871ULL,  917561888307352286ULL, 228,  0, -3523, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
@@ -206,7 +206,7 @@ public:
         consensus.CSVHeight = 1; 
         consensus.SegwitHeight = 1; 
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
-        consensus.powLimit = 175;
+        consensus.powLimit = 228;
         consensus.nPowTargetTimespan = 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 5 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
