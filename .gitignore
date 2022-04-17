@@ -2,16 +2,17 @@
 
 *.exe
 *.pdb
-src/bitcoin
-src/bitcoind
-src/bitcoin-cli
-src/bitcoin-gui
-src/bitcoin-node
-src/bitcoin-tx
-src/bitcoin-util
-src/bitcoin-wallet
+src/factorn
+src/factornd
+src/factorn-cli
+src/factorn-gui
+src/factorn-node
+src/factorn-tx
+src/factorn-util
+src/factorn-wallet
 src/test/fuzz/fuzz
-src/test/test_bitcoin
+src/test/test_factorn
+src/bench/bench_factorn
 src/qt/test/test_bitcoin-qt
 
 # autoreconf
