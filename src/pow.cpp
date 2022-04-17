@@ -150,16 +150,28 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     mpz_init( n_check );
     mpz_mul( n_check, nP1, nP2);
 
-    //Check that nP1*nP2 == n and that nP1 <= nP2.
-    if( (mpz_cmp(n_check, n) != 0) || (mpz_cmp(nP1, nP2) > 0)   )
+    //Check that nP1*nP2 == n.
+    if( mpz_cmp(n_check, n) != 0  )
     {
-        LogPrintf("pow error: invalid nP1: N=%s nP1=%s\n", mpz_get_str(NULL, 10, n), mpz_get_str(NULL, 10, nP1));
+        LogPrintf("pow error: nP1 does not divide N.  N=%s nP1=%s\n", mpz_get_str(NULL, 10, n), mpz_get_str(NULL, 10, nP1));
         mpz_clear(n);
         mpz_clear(nP1);
         mpz_clear(nP2);
         mpz_clear(n_check);
     	return false;
     }
+
+    //Check that nP1 <= nP2.
+    if( mpz_cmp(nP1, nP2) > 0 )   
+    {
+        LogPrintf("pow error: nP1 must be the smallest factor. N=%s nP1=%s\n", mpz_get_str(NULL, 10, n), mpz_get_str(NULL, 10, nP1));
+        mpz_clear(n);
+        mpz_clear(nP1);
+        mpz_clear(nP2);
+        mpz_clear(n_check);
+    	return false;
+    }
+
 
     //Clear memory
     mpz_clear(n);
