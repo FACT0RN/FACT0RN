@@ -12,5 +12,5 @@ export PACKAGES="cmake python3 python3-pip llvm clang"
 export DEP_OPTS="DEBUG=1 MULTIPROCESS=1"
 export GOAL="install"
 export BITCOIN_CONFIG="--enable-debug CC=clang CXX=clang++"  # Use clang to avoid OOM
-export TEST_RUNNER_ENV="BITCOIND=bitcoin-node"
+export TEST_RUNNER_ENV="BITCOIND=factorn-node"
 export PIP_PACKAGES="lief"
