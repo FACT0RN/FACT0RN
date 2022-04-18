@@ -90,10 +90,11 @@ public:
         consensus.BIP16Exception = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000") ;
         consensus.BIP34Height  = 1;
         consensus.BIP34Hash    = uint256S("");
-        consensus.BIP65Height  = 1; 
+        consensus.BIP65Height  = 1;
         consensus.BIP66Height  = 1;
-        consensus.CSVHeight    = 1; 
-        consensus.SegwitHeight = 1; 
+        consensus.CSVHeight    = 1;
+        consensus.SegwitHeight = 1;
+        consensus.TaprootHeight = 1;
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = 230;
         consensus.nPowTargetTimespan = 14ULL * 24ULL * 60ULL * 60ULL; // 14 Days * 24 Hours * 60 Minutes * 60 Seconds |-> Seconds in 2 weeks.
@@ -102,16 +103,11 @@ public:
         consensus.fPowNoRetargeting  = false;
         consensus.nRuleChangeActivationThreshold = 100;
         consensus.nMinerConfirmationWindow = 672; // nPowTargetTimespan / nPowTargetSpacing
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 1; // No activation delay
-
-        // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1619222400; // April 24th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 1; // Approximately November 12th, 2021
 
         consensus.nMinimumChainWork  = uint256S("0x10a8");
         consensus.defaultAssumeValid = genesis.GetHash(); 
@@ -132,7 +128,7 @@ public:
         pchMessageStart[1] = 0xfe;
         pchMessageStart[2] = 0xca;
         pchMessageStart[3] = 0xfe;
-        nDefaultPort = 8333; 
+        nDefaultPort = 30030;
         nPruneAfterHeight = 1;
         m_assumed_blockchain_size = 420;
         m_assumed_chain_state_size = 6;
@@ -160,7 +156,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
-        bech32_hrp = "bc";
+        bech32_hrp = "fact";
 
         //vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
 
@@ -170,9 +166,9 @@ public:
         m_is_mockable_chain = false;
 
         checkpointData = {
-            {
-                { 11111, uint256S("0x0000000069e244f73d78e8fd29ba2fd2ed618bd6fa2ee92559f542fdb26e7c1d")},
-            }
+          {
+            {0, consensus.hashGenesisBlock} // replace me with a hardcoded uint256 before release
+          }
         };
 
         m_assumeutxo_data = MapAssumeutxo{
@@ -181,9 +177,9 @@ public:
 
         chainTxData = ChainTxData{
             // Data from RPC: getchaintxstats 4096 00000000000000000008a89e854d57e5667df88f1cdef6fde2fbca1de5b639ad
-            /* nTime    */ 1626697539,
-            /* nTxCount */ 656509474,
-            /* dTxRate  */ 2.424920418708139,
+            /* nTime    */ genesis.nTime,
+            /* nTxCount */ 1,
+            /* dTxRate  */ 1.0f / consensus.nPowTargetSpacing, // one tx per block for now
         };
     }
 };
@@ -202,9 +198,10 @@ public:
         consensus.BIP16Exception = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000") ;
         consensus.BIP34Height = 1;
         consensus.BIP65Height = 1;
-        consensus.BIP66Height = 1; 
-        consensus.CSVHeight = 1; 
-        consensus.SegwitHeight = 1; 
+        consensus.BIP66Height = 1;
+        consensus.CSVHeight = 1;
+        consensus.SegwitHeight = 1;
+        consensus.TaprootHeight = 1;
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
         consensus.powLimit = 228;
         consensus.nPowTargetTimespan = 24 * 60 * 60; // two weeks
@@ -213,16 +210,11 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 90; // 75% for testchains
         consensus.nMinerConfirmationWindow = 288; // nPowTargetTimespan / nPowTargetSpacing
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-
-        // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1619222400; // April 24th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
         consensus.nMinimumChainWork = uint256S("0x10a8");
         consensus.defaultAssumeValid = genesis.GetHash(); 
@@ -237,7 +229,7 @@ public:
         pchMessageStart[1] = 0xc7;
         pchMessageStart[2] = 0x02;
         pchMessageStart[3] = 0x88;
-        nDefaultPort = 18333;
+        nDefaultPort = 42069;
         nPruneAfterHeight = 1;
         m_assumed_blockchain_size = 40;
         m_assumed_chain_state_size = 2;
@@ -258,7 +250,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp = "tb";
+        bech32_hrp = "tfact";
 
         //vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
 
@@ -268,9 +260,9 @@ public:
         m_is_mockable_chain = false;
 
         checkpointData = {
-            {
-                {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
-            }
+          {
+            {0, consensus.hashGenesisBlock} // replace me with a hardcoded uint256 before release
+          }
         };
 
         m_assumeutxo_data = MapAssumeutxo{
@@ -279,9 +271,9 @@ public:
 
         chainTxData = ChainTxData{
             // Data from RPC: getchaintxstats 4096 0000000000004ae2f3896ca8ecd41c460a35bf6184e145d91558cece1c688a76
-            /* nTime    */ 1625727096,
-            /* nTxCount */ 60408943,
-            /* dTxRate  */ 0.08379062270367649,
+            /* nTime    */ genesis.nTime,
+            /* nTxCount */ 1,
+            /* dTxRate  */ 1.0f / consensus.nPowTargetSpacing, // one tx per block for now
         };
     }
 };
@@ -347,6 +339,7 @@ public:
         consensus.BIP66Height = 1;
         consensus.CSVHeight = 1;
         consensus.SegwitHeight = 1;
+        consensus.TaprootHeight = 1;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 30 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -355,16 +348,11 @@ public:
         consensus.nMinerConfirmationWindow = 672; // nPowTargetTimespan / nPowTargetSpacing
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = 32;
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-
-        // Activation of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         CHashWriter h(SER_DISK, 0);
@@ -413,11 +401,12 @@ public:
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
         consensus.BIP16Exception = uint256();
-        consensus.BIP34Height =1; 
+        consensus.BIP34Height =1;
         consensus.BIP65Height = 1;
         consensus.BIP66Height = 1;
-        consensus.CSVHeight = 1; 
-        consensus.SegwitHeight = 1; 
+        consensus.CSVHeight = 1;
+        consensus.SegwitHeight = 1;
+        consensus.TaprootHeight = 1;
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = 32;
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -431,11 +420,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
         consensus.nMinimumChainWork = uint256S("0x10a8");
         consensus.defaultAssumeValid = uint256{};
