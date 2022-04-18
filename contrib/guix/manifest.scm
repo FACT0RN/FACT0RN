@@ -618,6 +618,7 @@ inspecting signatures in Mach-O binaries.")
         tar
         bzip2
         gzip
+        unzip
         xz
         zlib
         (list zlib "static")
