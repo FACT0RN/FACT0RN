@@ -191,6 +191,9 @@ case "$HOST" in
         ;;
 esac
 
+# Disable QT building for Fact0rN
+export NO_QT=1
+
 ####################
 # Depends Building #
 ####################
