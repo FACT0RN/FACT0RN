@@ -461,6 +461,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
     try
     {
+
+        uint32_t OP_CHECKDIV_count = 0;
         for (; pc < pend; ++opcode_pos) {
             bool fExec = vfExec.all_true();
 
@@ -478,6 +480,15 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     return set_error(serror, SCRIPT_ERR_OP_COUNT);
                 }
             }
+
+            //Count OP_CHECKDIV appearances in this script.
+            if (opcode == OP_CHECKDIV)
+                OP_CHECKDIV_count++;
+
+            //Return error if OP_CHECKDIV appears more than once
+            if( OP_CHECKDIV_count > 1)
+                return set_error(serror, SCRIPT_ERR_OP_CHECKDIV);
+
 
             if (opcode == OP_CAT ||
                 opcode == OP_SUBSTR ||
