@@ -617,44 +617,48 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                case OP_NOP1:
+                case OP_CHECKDIV:
                 {
-                    // Stack Top
-                    //    x1
-                    //    x2
+                    // OPCODE: Check Divisor
+                    //
+                    // Stack 
+                    //    P <- Top stack element
+                    //    N <- Second stack element
                     //
                     // Perform:
-                    //    x1 x2 -- return 1 if x2 Mod x1 == 0 else 0
+                    //    N Mod P -- return 1 if N Mod P == 0 else return 0
+                    //
+                    // Notes: Inputs are always interpreted as positive integers.
+                    //
                     if (stack.size() < 2)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-                    //Retrieve x2 and do validation
-                    mpz_t x1;
-                    mpz_init(x1);
-                    mpz_import( x1, stacktop(-1).size(), -1, sizeof(char), 0, 0, &(stacktop(-1)[0]) );
+                    //Retrieve P and do validation
+                    mpz_t p;
+                    mpz_init(p);
+                    mpz_import( p, stacktop(-1).size(), -1, sizeof(char), 0, 0, &(stacktop(-1)[0]) );
 
-                    //Check that x1 != 0
-                    if( mpz_cmp_ui( x1, 0) == 0){
-                       mpz_clear(x1);
+                    //Check that p != 0
+                    if( mpz_cmp_ui( p, 0) == 0){
+                       mpz_clear(p);
                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
                     }
 
-                    //Retrieve remaning data. Note that x1 is always 
-                    //interpreted as a positive integer
-                    mpz_t x2;
-                    mpz_init(x2);
-                    mpz_import( x2, stacktop(-2).size(), -1, sizeof(char), 0, 0, &(stacktop(-2)[0]));
+                    //Retrieve N
+                    mpz_t n;
+                    mpz_init(n);
+                    mpz_import( n, stacktop(-2).size(), -1, sizeof(char), 0, 0, &(stacktop(-2)[0]));
 
                     //Perform operation
                     mpz_t result;
                     mpz_init(result);
-                    mpz_mod( result, x2, x1);
+                    mpz_mod( result, n, p);
 
                     //Clear GMP managed allocated memory
-                    mpz_clear(x1);
-                    mpz_clear(x2);
+                    mpz_clear(n);
+                    mpz_clear(p);
 
-                    //Check to see if x1 divides x2, or equivalently that x2 Mod x1 = 0
+                    //Check to see if p divides n, or equivalently that n Mod p == 0
                     unsigned char retValue = (mpz_cmp_ui( result, 0 ) == 0);
 
                     //Clear GMP managed allocated memory

@@ -129,7 +129,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_CHECKMULTISIGVERIFY    : return "OP_CHECKMULTISIGVERIFY";
 
     // expansion
-    case OP_NOP1                   : return "OP_NOP1";
+    case OP_CHECKDIV               : return "OP_CHECKDIV";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
     case OP_NOP4                   : return "OP_NOP4";
