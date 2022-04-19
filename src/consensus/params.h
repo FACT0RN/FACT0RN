@@ -24,7 +24,7 @@ enum BuriedDeployment : int16_t {
     DEPLOYMENT_SEGWIT,
     DEPLOYMENT_TAPROOT,
 };
-constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_SEGWIT; }
+constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_TAPROOT; }
 
 enum DeploymentPos : uint16_t {
     DEPLOYMENT_TESTDUMMY,
