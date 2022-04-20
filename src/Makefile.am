@@ -170,6 +170,7 @@ BITCOIN_CORE_H = \
   interfaces/wallet.h \
   key.h \
   key_io.h \
+  libpopcnt.h \
   logging.h \
   logging/timer.h \
   mapport.h \

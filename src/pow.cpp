@@ -16,17 +16,17 @@
 #include <cmath>
 
 //Blake2b, Scrypt and SHA3-512
-#include "cryptopp/cryptlib.h"
-#include "cryptopp/sha3.h"
-#include "cryptopp/whrlpool.h"
-#include "cryptopp/scrypt.h"
-#include "cryptopp/secblock.h"
-#include "cryptopp/blake2.h"
-#include "cryptopp/hex.h"
-#include "cryptopp/files.h"
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/sha3.h>
+#include <cryptopp/whrlpool.h>
+#include <cryptopp/scrypt.h>
+#include <cryptopp/secblock.h>
+#include <cryptopp/blake2.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/files.h>
 
 //Fancy popcount implementation
-#include "libpopcnt.h"
+#include <libpopcnt.h>
 
 uint16_t GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
