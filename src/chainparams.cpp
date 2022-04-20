@@ -42,12 +42,12 @@ static CBlock CreateGenesisBlock(
     genesis.wOffset  = wOffset;
    
     //Genesis parameters for different networks on FACT0RN.
-    if( nTime == 1650293401UL){                
-        genesis.nP1      = uint1024S("0x8fd5");                          //Regtest
+    if( nTime == 1650443545){                
+        genesis.nP1      = uint1024S("0x82bd");                          //Regtest
     }
-    else if ( nTime == 1650212871ULL ){ 
-        genesis.nP1      = uint1024S("0x2ca15da318796b578a3952091fd93"); //Testnet
-    } else if (nTime == 1650449340ULL ) {                           
+    else if ( nTime == 1650442708 ){ 
+        genesis.nP1      = uint1024S("0x29bd98fec7408110c833e1c50642d"); //Testnet
+    } else if (nTime == 1650449340 ) {                           
         genesis.nP1      = uint1024S("0x746e26c03bb7955ab2db0322c02bd");   //Mainnet
     }
 
@@ -190,7 +190,7 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = CBaseChainParams::TESTNET;
-        genesis = CreateGenesisBlock( 1650212871ULL,  917561888307352286ULL, 228,  0, -3523, 0);
+        genesis = CreateGenesisBlock( 1650442708ULL,  420ULL, 228,  0, 2750LL, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
@@ -395,7 +395,7 @@ class CRegTestParams : public CChainParams {
 public:
     explicit CRegTestParams(const ArgsManager& args) {
         strNetworkID =  CBaseChainParams::REGTEST;
-        genesis = CreateGenesisBlock( 1650293401ULL, 0ULL, 32, 4, 184, 0);
+        genesis = CreateGenesisBlock( 1650443545ULL, 7188792851871390278ULL, 32, 0, -145, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
