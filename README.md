@@ -1,82 +1,109 @@
-Bitcoin Core integration/staging tree
-=====================================
+#  <div align="center">  FACT0RN  </div>
 
-https://bitcoincore.org
+A blockchain replacing hashing as Proof of Work (PoW) by integer factorization. A fork from bitcoin V22.0.
 
-For an immediately usable, binary version of the Bitcoin Core software, see
-https://bitcoincore.org/en/download/.
+The FACT0RN blockchain seeks to allow its user to pay FACT coins to place integers in a deadpool for factorization. 
 
-Further information about Bitcoin Core is available in the [doc folder](/doc).
+The whitepaper will be published in May, 2022.
 
-What is Bitcoin?
-----------------
 
-Bitcoin is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. Bitcoin uses peer-to-peer technology to operate
-with no central authority: managing transactions and issuing money are carried
-out collectively by the network. Bitcoin Core is the name of open source
-software which enables the use of this currency.
+## Installation
 
-For more information read the original Bitcoin whitepaper.
 
-License
--------
+Binaries are provided for Ubuntu 20.04 LTS. To build from source follow these steps:
 
-Bitcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/licenses/MIT.
+#### Depends build
+From the repository root folder run the following:
+```
+make -C depends NO_QT=1                                && \
+./autogen.sh                                           && \
+./configure --prefix=`pwd`/depends/x86_64-pc-linux-gnu && \ 
+make
+```
+    
+#### Binaries
+You can grab the binaries from the releases page, untar them and run them as-is.
 
-Development Process
--------------------
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
-regularly from release branches to indicate new official, stable release versions of Bitcoin Core.
+## Mining
 
-The https://github.com/bitcoin-core/gui repository is used exclusively for the
-development of the GUI. Its master branch is identical in all monotree
-repositories. Release branches and tags do not exist, so please do not fork
-that repository unless it is for development reasons.
+We have created a python script to mine. Here's what you will need to mine:
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+1. Wallet
+2. Python 3
+3. Put it all togehter
 
-Testing
--------
+First, we need a node running. See the installation section. Once you have your
+node running here's how to create a wallet, generate an address and extract the 
+scriptPubKey value that will allow you to earn mining rewards.
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
 
-### Automated Testing
+From the project's root folder:
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled in configure) with: `make check`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+```
+src/factorn-wallet  -wallet=<wallet name>  -descriptors create
+src/factorn-cli    loadwallet <wallet name>
+src/factorn-cli    getnewaddress
+src/factorn-cli    getaddressinfo <address from previous command>
+```
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `test/functional/test_runner.py`
+For example, from the get ``getaddresinfo`` command above you should get something
+similar to:
 
-The CI (Continuous Integration) systems make sure that every pull request is built for Windows, Linux, and macOS,
-and that unit/sanity tests are run automatically.
+```
+{
+  "address": "fact1q4zjycg88kyk72szmhpjvm82mu0zm6p26g7zeh8",
+  "scriptPubKey": "0014a8a44c20e7b12de5405bb864cd9d5be3c5bd055a",
+  "ismine": true,
+  "solvable": true,
+  "desc": "wpkh([67f532c6/84'/0'/0'/0/0]02de55517a22dc5a66d4a193cb877a3658b1c456827c1404d18e79dec82d5d937a)#0hcn4tny",
+  "parent_desc": "wpkh([67f532c6/84'/0'/0']xpub6D7gQbDdRjuiMN9EqbEzWY4owSUfNNcRdA4E5aaYCX4VoRPMzgeaF4C15D6hSCUpvUkZvjKJTLktDVvjZ3beL8sfW1ATsNQ6qCsAkV6STtr/0/*)#zylutadk",
+  "iswatchonly": false,
+  "isscript": false,
+  "iswitness": true,
+  "witness_version": 0,
+  "witness_program": "a8a44c20e7b12de5405bb864cd9d5be3c5bd055a",
+  "pubkey": "02de55517a22dc5a66d4a193cb877a3658b1c456827c1404d18e79dec82d5d937a",
+  "ischange": false,
+  "timestamp": 1650416082,
+  "hdkeypath": "m/84'/0'/0'/0/0",
+  "hdseedid": "0000000000000000000000000000000000000000",
+  "hdmasterfingerprint": "67f532c6",
+  "labels": [
+    ""
+  ]
+}
+```
 
-### Manual Quality Assurance (QA) Testing
+You will need the value from "scriptPubKey" to mine. In this example, this person
+would use the value "0014a8a44c20e7b12de5405bb864cd9d5be3c5bd055a" to pass to the 
+python mining script. This would credit the rewards of the block to their address.
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+Once you have this scriptPubKey value from your wallet clone the miner code from ``https://github.com/FACT0RN/factoring``. 
 
-Translations
-------------
+You will need to install the following python packages:
 
-Changes to translations as well as new translations can be submitted to
-[Bitcoin Core's Transifex page](https://www.transifex.com/bitcoin/bitcoin/).
+```
+cypari2
+gmpy2
+numpy
+sympy
+base58
+```
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
+If you are using Anaconda, here are the commands to install the needed packages.
 
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+```
+conda install -c conda-forge cypari2 
+conda install -c anaconda numpy 
+conda install -c conda-forge gmpy2 
+conda install -c conda-forge sympy 
+conda install -c conda-forge base58 
+```
+
+You will only need the ``FACTOR.py`` script. 
+
+```
+python FACTOR.py <scriptPubKey>
+```
+
