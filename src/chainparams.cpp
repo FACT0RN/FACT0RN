@@ -47,8 +47,8 @@ static CBlock CreateGenesisBlock(
     }
     else if ( nTime == 1650212871ULL ){ 
         genesis.nP1      = uint1024S("0x2ca15da318796b578a3952091fd93"); //Testnet
-    } else {                           
-        genesis.nP1      = uint1024S("0x450e01ea669bc906153d6d1394a2b");   //Mainnet
+    } else if (nTime == 1650449340ULL ) {                           
+        genesis.nP1      = uint1024S("0x746e26c03bb7955ab2db0322c02bd");   //Mainnet
     }
 
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
@@ -70,7 +70,7 @@ static CBlock CreateGenesisBlock(
  */
 static CBlock CreateGenesisBlock(uint32_t nTime, uint64_t nNonce, uint16_t nBits, int32_t nVersion, int64_t wOffset, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "The official RSA Challenge ended, but the challenge lives on. Let the factoring race begin.";
+    const char* pszTimestamp = "The Times 04/Apr/2022 Russia Strikes Hard as It Pushes to Seize Donbas Region";
     const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, wOffset, genesisReward);
 }
@@ -82,7 +82,7 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = CBaseChainParams::MAIN;
-        genesis = CreateGenesisBlock( 1650212239 , 9225410068863233824ULL, 230, 0 , 3636LL,  0);
+        genesis = CreateGenesisBlock( 1650449340ULL , 42069ULL, 230, 0 , 3068LL,  0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
