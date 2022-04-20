@@ -54,7 +54,6 @@ static CBlock CreateGenesisBlock(
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot      = BlockMerkleRoot(genesis);
-    std::cout << "Genesis MerkleRoot: "<< genesis.hashMerkleRoot.GetHex() << std::endl;
     return genesis;
 }
 
