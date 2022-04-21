@@ -190,7 +190,7 @@ public:
         consensus.SegwitHeight = 1;
         consensus.TaprootHeight = 1;
         consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window
-        consensus.powLimit = 228;
+        consensus.powLimit = 210;
         consensus.nPowTargetTimespan = 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 5 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
