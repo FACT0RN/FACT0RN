@@ -154,7 +154,7 @@ public:
 
         checkpointData = {
           {
-            {0, consensus.hashGenesisBlock} // replace me with a hardcoded uint256 before release
+            {0, uint256S("79cb40f8075b0e3dc2bc468c5ce2a7acbe0afd36c6c3d3a134ea692edac7de49") } 
           }
         };
 
@@ -246,7 +246,7 @@ public:
 
         checkpointData = {
           {
-            {0, consensus.hashGenesisBlock} // replace me with a hardcoded uint256 before release
+            {0, uint256S("550bbf0a444d9f92189f067dd225f5b8a5d92587ebc2e8398d143236072580af") }
           }
         };
 
@@ -433,7 +433,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
+                {0, uint256S("38039464f800f026086985e81e6af3ceb35c2b93f042d79ab637d692eb002136")},
             }
         };
 
