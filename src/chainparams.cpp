@@ -43,12 +43,12 @@ static CBlock CreateGenesisBlock(
    
     //Genesis parameters for different networks on FACT0RN.
     if( nTime == 1650443545){                
-        genesis.nP1      = uint1024S("0x82bd");                          //Regtest
+        genesis.nP1      = uint1024S("0xb5ff");                            //Regtest
     }
     else if ( nTime == 1650442708 ){ 
-        genesis.nP1      = uint1024S("0x29bd98fec7408110c833e1c50642d"); //Testnet
+        genesis.nP1      = uint1024S("0x166ad939aed84a268f7c2ae4f5d");     //Testnet
     } else if (nTime == 1650449340 ) {                           
-        genesis.nP1      = uint1024S("0x746e26c03bb7955ab2db0322c02bd");   //Mainnet
+        genesis.nP1      = uint1024S("0x5b541e0fc53ad9c40daa99c31c17b");   //Mainnet
     }
 
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
@@ -70,7 +70,7 @@ static CBlock CreateGenesisBlock(
  */
 static CBlock CreateGenesisBlock(uint32_t nTime, uint64_t nNonce, uint16_t nBits, int32_t nVersion, int64_t wOffset, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "The Times 04/Apr/2022 Russia Strikes Hard as It Pushes to Seize Donbas Region";
+    const char* pszTimestamp = "The Times 4/20/2022 Russia Strikes Hard as It Pushes to Seize Donbas Region";
     const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, wOffset, genesisReward);
 }
@@ -82,7 +82,7 @@ class CMainParams : public CChainParams {
 public:
     CMainParams() {
         strNetworkID = CBaseChainParams::MAIN;
-        genesis = CreateGenesisBlock( 1650449340ULL , 42069ULL, 230, 0 , 3068LL,  0);
+        genesis = CreateGenesisBlock( 1650449340ULL , 4081969520ULL, 230, 0 , 2375LL,  0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
@@ -148,6 +148,10 @@ public:
         //vSeeds.emplace_back("seed.bitcoin.sprovoost.nl"); // Sjors Provoost
         //vSeeds.emplace_back("dnsseed.emzy.de"); // Stephan Oeste
         //vSeeds.emplace_back("seed.bitcoin.wiz.biz"); // Jason Maurice
+	    //Assert for genesis block.
+        consensus.hashGenesisBlock = genesis.GetHash();
+        assert(consensus.hashGenesisBlock == uint256S("79cb40f8075b0e3dc2bc468c5ce2a7acbe0afd36c6c3d3a134ea692edac7de49"));
+        assert(genesis.hashMerkleRoot == uint256S("fe56b75eb001df55cfe63e768ff54a7a376a3108119c9cedd1c6b5045649b108"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -190,7 +194,7 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = CBaseChainParams::TESTNET;
-        genesis = CreateGenesisBlock( 1650442708ULL,  420ULL, 228,  0, 2750LL, 0);
+        genesis = CreateGenesisBlock( 1650442708ULL,  4143631544ULL, 210,  0, -2813, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
@@ -235,6 +239,12 @@ public:
 
 	    //TODO_FACTOR: Add assert for genesis block.
 
+	    //Assert for genesis block.
+        consensus.hashGenesisBlock = genesis.GetHash();
+        assert(consensus.hashGenesisBlock == uint256S("550bbf0a444d9f92189f067dd225f5b8a5d92587ebc2e8398d143236072580af"));
+        assert(genesis.hashMerkleRoot == uint256S("fe56b75eb001df55cfe63e768ff54a7a376a3108119c9cedd1c6b5045649b108"));
+
+        //Seeds
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
@@ -395,7 +405,7 @@ class CRegTestParams : public CChainParams {
 public:
     explicit CRegTestParams(const ArgsManager& args) {
         strNetworkID =  CBaseChainParams::REGTEST;
-        genesis = CreateGenesisBlock( 1650443545ULL, 7188792851871390278ULL, 32, 0, -145, 0);
+        genesis = CreateGenesisBlock( 1650443545ULL, 2706135317ULL, 32, 0, 254, 0);
         consensus.hashGenesisBlock = genesis.GetHash();
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
