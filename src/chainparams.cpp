@@ -132,22 +132,6 @@ public:
         m_assumed_blockchain_size = 420;
         m_assumed_chain_state_size = 6;
 
-	    //TODO_FACTOR: Add assert for genesis block.
-
-        // Note that of those which support the service bits prefix, most only support a subset of
-        // possible options.
-        // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
-        // service bits we want, but we should get them updated to support all service bits wanted by any
-        // release ASAP to avoid it where possible.
-        //vSeeds.emplace_back("seed.bitcoin.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
-        //vSeeds.emplace_back("dnsseed.bluematt.me"); // Matt Corallo, only supports x9
-        //vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org"); // Luke Dashjr
-        //vSeeds.emplace_back("seed.bitcoinstats.com"); // Christian Decker, supports x1 - xf
-        //vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch"); // Jonas Schnelli, only supports x1, x5, x9, and xd
-        //vSeeds.emplace_back("seed.btc.petertodd.org"); // Peter Todd, only supports x1, x5, x9, and xd
-        //vSeeds.emplace_back("seed.bitcoin.sprovoost.nl"); // Sjors Provoost
-        //vSeeds.emplace_back("dnsseed.emzy.de"); // Stephan Oeste
-        //vSeeds.emplace_back("seed.bitcoin.wiz.biz"); // Jason Maurice
 	    //Assert for genesis block.
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("79cb40f8075b0e3dc2bc468c5ce2a7acbe0afd36c6c3d3a134ea692edac7de49"));
@@ -237,8 +221,6 @@ public:
         m_assumed_blockchain_size = 40;
         m_assumed_chain_state_size = 2;
 
-	    //TODO_FACTOR: Add assert for genesis block.
-
 	    //Assert for genesis block.
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("550bbf0a444d9f92189f067dd225f5b8a5d92587ebc2e8398d143236072580af"));
@@ -247,12 +229,6 @@ public:
         //Seeds
         vFixedSeeds.clear();
         vSeeds.clear();
-        // nodes with support for servicebits filtering should be at the top
-        //vSeeds.emplace_back("testnet-seed.bitcoin.jonasschnelli.ch");
-        //vSeeds.emplace_back("seed.tbtc.petertodd.org");
-        //vSeeds.emplace_back("seed.testnet.bitcoin.sprovoost.nl");
-        //vSeeds.emplace_back("testnet-seed.bluematt.me"); // Just a static list of stable node(s), only supports x9
-
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
@@ -378,10 +354,7 @@ public:
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
 
-	    //TODO_FACTOR: Add assert for genesis block.
-
         vFixedSeeds.clear();
-
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
@@ -447,8 +420,6 @@ public:
 
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
-
-	    //TODO_FACTOR: Add assert for genesis block.
 
         UpdateActivationParametersFromArgs(args);
 
