@@ -145,6 +145,18 @@ bool CheckProofOfWork( const CBlockHeader& block, const Consensus::Params& param
     LogPrint(BCLog::POW, "nP1: %s\n", mpz_get_str(NULL, 10, nP1));
     LogPrint(BCLog::POW, "nP2: %s\n", mpz_get_str(NULL, 10, nP2));
 
+    //Check the bitsizes are as expected
+    const uint16_t nP1_bitsize = mpz_sizeinbase(nP1, 2);
+    const uint16_t expected_bitsize = (block.nBits >> 1) + (block.nBits & 1);
+
+    if (nP1_bitsize != expected_bitsize){
+        LogPrintf("pow error: nP1 expected bitsize=%s, actual size=%s\n", nP1_bitsize, expected_bitsize);
+        mpz_clear(n);
+        mpz_clear(nP1);
+        mpz_clear(nP2);
+        return false;
+    } 
+ 
     //Check nP1 is a factor
     mpz_t n_check;
     mpz_init( n_check );
