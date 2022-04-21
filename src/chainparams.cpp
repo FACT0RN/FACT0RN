@@ -431,6 +431,12 @@ public:
         m_is_test_chain = true;
         m_is_mockable_chain = true;
 
+	    //Assert for genesis block.
+        consensus.hashGenesisBlock = genesis.GetHash();
+        assert(consensus.hashGenesisBlock == uint256S("38039464f800f026086985e81e6af3ceb35c2b93f042d79ab637d692eb002136"));
+        assert(genesis.hashMerkleRoot == uint256S("fe56b75eb001df55cfe63e768ff54a7a376a3108119c9cedd1c6b5045649b108"));
+        
+
         checkpointData = {
             {
                 {0, uint256S("38039464f800f026086985e81e6af3ceb35c2b93f042d79ab637d692eb002136")},
