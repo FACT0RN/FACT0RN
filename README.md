@@ -24,7 +24,7 @@ make
 #### Binaries
 You can grab the binaries from the releases page, untar them and run them as-is.
 
-### Running a node
+## Running a node
 
 Running a node can be done for two purposes: relaying transactions and/or mining. For relaying transactions
 all you need to do is run the executable and you are good to go. If you want to mine then you need to set
