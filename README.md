@@ -24,6 +24,28 @@ make
 #### Binaries
 You can grab the binaries from the releases page, untar them and run them as-is.
 
+### Running a node
+
+Running a node can be done for two purposes: relaying transactions and/or mining. For relaying transactions
+all you need to do is run the executable and you are good to go. If you want to mine then you need to set
+a username and password so that your miner is able to connect to it. Choose a username and a password so that
+only you can interact with your node. 
+
+From the directory where you untar-ed your binaries from the release page do the following:
+
+```
+./factornd -rpcuser=<set your username here> -rpcpassword=<set your password here>
+```
+
+Your miner will need these to connect to your node and ask for the next block to mine. If you are mining locally
+your port are the standard ports: mainnet -> 8332 and testnet -> 18332. By default ``factornd`` runs on mainnet.
+To run testnet do:
+
+```
+./factornd -rpcuser=<set your username here> -rpcpassword=<set your password here> -testnet
+```
+You will need to know this ro run FACTOR.py from the mining code at ``https://github.com/FACT0RN/factoring``.
+ 
 
 ## Mining
 
