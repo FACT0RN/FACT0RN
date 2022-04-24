@@ -24,6 +24,24 @@ make
 #### Binaries
 You can grab the binaries from the releases page, untar them and run them as-is.
 
+#### Tor
+
+To run nodes uing Tor you will need to install Tor. For ubuntu,
+
+```
+sudo apt install tor 
+```
+
+Now you will need to add the folowing three lines to ``/etc/tor/torrc``,
+
+```
+ControlPort 9051
+CookieAuthentication 1
+CookieAuthFileGroupReadable 1
+```
+
+Now you can start the factornd client and it will use the Tor Network.
+
 ## Running a node
 
 Running a node can be done for two purposes: relaying transactions and/or mining. For relaying transactions
