@@ -46,8 +46,25 @@ Now you can start the factornd client and it will use the Tor Network.
 
 Running a node can be done for two purposes: relaying transactions and/or mining. For relaying transactions
 all you need to do is run the executable and you are good to go. If you want to mine then you need to set
-a username and password so that your miner is able to connect to it. Choose a username and a password so that
-only you can interact with your node. 
+a username and password so that your miner is able to connect to it. 
+
+There are two ways to do this: set them in your config file or pass them in using parameters. 
+
+### Method 1: config file
+
+The advantage of this method is that you don't have to enter it anywhere. You can run your node and use
+the cli tools wihtout passing in the rpcuser and rpcpassword flags all the time. 
+
+Create the file ``~/.factorn/factorn.conf`` if it does not exist. Add the following to it:
+
+```
+rpcuser=<Type a username of your choice>
+rpcpassword=<Type in any password of your choosing>
+```
+
+That's it. You can start your node or use the cli tools and it will use that username and password automafically.
+
+### Method 2: Command line RPC flags
 
 From the directory where you untar-ed your binaries from the release page do the following:
 
