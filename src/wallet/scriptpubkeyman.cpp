@@ -1919,7 +1919,7 @@ bool DescriptorScriptPubKeyMan::SetupDescriptorGeneration(const CExtKey& master_
     if (Params().IsTestChain()) {
         desc_prefix += "/1'";
     } else {
-        desc_prefix += "/0'";
+        desc_prefix += "/42069'";
     }
 
     std::string internal_path = internal ? "/1" : "/0";
