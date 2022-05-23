@@ -273,9 +273,6 @@ uint1024 gHash( const CBlockHeader& block, const Consensus::Params& params)
     //Consensus parameters
     int roundsTotal = params.hashRounds;
 
-    //Additional hashes we will need
-    SHA3_512 sHash;
-
     //Prepare GMP objects
     mpz_t prime_mpz, starting_number_mpz, a_mpz, a_inverse_mpz;
     mpz_init(prime_mpz);
