@@ -167,20 +167,26 @@ class uint1024 {
     public:
 
 	//In place shift operator.
-	uint1024 operator<<(const int32_t bitshift ) 
+	uint1024 operator<<(const uint32_t bitshift ) 
     {
-        int wholeWordShift    = std::min( bitshift/64, LIMBS);
-	    int partialWordShift  = bitshift%64;
-        int slicedPoint       = LIMBS - 1 - wholeWordShift;
+        assert( bitshift < 1024 );
+        uint32_t qwordShift = bitshift >> 6; 
+        uint32_t bShift     = bitshift & 0x3f;
+        int32_t topLimb     = LIMBS - 1 - qwordShift ;
 
 	    //Shift final values into place
-	    for( int jj=0; jj < LIMBS - wholeWordShift; jj++){
-            int index = slicedPoint - jj;
-	        _data[LIMBS - 1 - jj] = ( _data[index] << partialWordShift) | (_data[index -1] >> (64 - partialWordShift)  );
-	    }
+	    for( int32_t jj = topLimb; jj > 0 ; jj--){
+
+            uint64_t current_limb = _data[ jj     ] << bShift;
+            uint64_t prev_limb    = (bShift==0) ? 0 : _data[ jj - 1 ] >> (64 - bShift);
+	        _data[ qwordShift + jj] = current_limb | prev_limb;
+        }
+
+        //Do last limb
+	    _data[ qwordShift ] =  _data[0] << bShift;
 
         //Set words to zero
-	    for( int jj=0; jj < wholeWordShift; jj++)  _data[jj] = 0;
+	    for( uint32_t jj=0; jj < qwordShift; jj++)  _data[jj] = 0;
 
         return *this;
     }
