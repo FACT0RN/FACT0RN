@@ -1,10 +1,12 @@
 #  <div align="center">  FACT0RN  </div>
 
-A blockchain replacing hashing as Proof of Work (PoW) by integer factorization. A fork from bitcoin V22.0.
+A blockchain replacing hashing as Proof of Work (PoW) by integer factorization. A fork from bitcoin V22.0. The proof-of-work component has been replaced by Integer Factorization but everything else remains intact including the cli tool and all the RPC calls.
 
 The FACT0RN blockchain seeks to allow its user to pay FACT coins to place integers in a deadpool for factorization. 
 
-The whitepaper will be published in May, 2022.
+Website: https://fact0rn.io
+Whitepaper: https://fact0rn.io/FACT0RN_whitepaper.pdf
+Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-proof-of-work-pow-bc48c6f2100b
 
 
 ## Installation
