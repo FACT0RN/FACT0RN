@@ -4,9 +4,13 @@ A blockchain replacing hashing as Proof of Work (PoW) by integer factorization. 
 
 The FACT0RN blockchain seeks to allow its user to pay FACT coins to place integers in a deadpool for factorization. 
 
-Website: https://fact0rn.io
-Whitepaper: https://fact0rn.io/FACT0RN_whitepaper.pdf
-Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-proof-of-work-pow-bc48c6f2100b
+Website: https://fact0rn.io <br>
+Whitepaper: https://fact0rn.io/FACT0RN_whitepaper.pdf <br>
+Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-proof-of-work-pow-bc48c6f2100b <br>
+
+## Coin Distribution
+
+The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mehcanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange.
 
 
 ## Installation
