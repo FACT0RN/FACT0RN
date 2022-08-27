@@ -8,9 +8,18 @@ Website: https://fact0rn.io <br>
 Whitepaper: https://fact0rn.io/FACT0RN_whitepaper.pdf <br>
 Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-proof-of-work-pow-bc48c6f2100b <br>
 
+Contact:
+
+E-mail: fact0rn@pm.me <br>
+Discord: https://discord.gg/Z7UVuWDn <br>
+Twitter: https://twitter.com/LionesEscanor <br>
+Reddit: https://www.reddit.com/r/FACT0RN/ <br>
+
 ## Coin Distribution
 
 The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mehcanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange.
+
+
 
 
 ## Installation
