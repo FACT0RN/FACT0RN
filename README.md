@@ -11,7 +11,7 @@ Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-
 Contact:
 
 E-mail: fact0rn@pm.me <br>
-Discord: https://discord.gg/Z7UVuWDn <br>
+Discord: https://discord.gg/gG7MXxS5Fd <br>
 Twitter: https://twitter.com/LionesEscanor <br>
 Reddit: https://www.reddit.com/r/FACT0RN/ <br>
 
