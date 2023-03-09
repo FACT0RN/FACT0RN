@@ -114,15 +114,9 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
 
 AC_ARG_VAR(PYTHONPATH, Augments the default search path for python module files)
 
-case $host in
-   x86_64-*-linux*)
-  AC_CHECK_LIB([gmp],[__gmpz_init],LIBS=-lgmp, AC_MSG_ERROR(GMP is missing))
-esac
 
-case $host in
-   x86_64-*-linux*)
-	AC_CHECK_LIB(cryptopp, main, , [AC_MSG_ERROR("Linking against Crypto++ library failed")])
-esac
+AC_CHECK_LIB([gmp],[__gmpz_init],LIBS=-lgmp, AC_MSG_ERROR(GMP is missing))
+AC_CHECK_LIB(cryptopp, main, , [AC_MSG_ERROR("Linking against Crypto++ library failed")])
 
 AC_ARG_ENABLE([wallet],
   [AS_HELP_STRING([--disable-wallet],
@@ -1886,7 +1880,7 @@ CPPFLAGS="$CPPFLAGS_TEMP"
 
 LDFLAGS_TEMP="$LDFLAGS"
 unset LDFLAGS
-LDFLAGS="$LDFLAGS_TEMP -fopenmp"
+LDFLAGS="$LDFLAGS_TEMP"
 
 LIBS_TEMP="$LIBS"
 unset LIBS
