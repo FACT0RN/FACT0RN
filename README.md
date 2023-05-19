@@ -21,7 +21,7 @@ Listed on the following exchanges:
 
 ## Coin Distribution
 
-The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mehcanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange. (Okay, now that we have been listed you can buy them.)
+The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mechanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange. (Okay, now that we have been listed you can buy them.)
 
 
 ## Installation
