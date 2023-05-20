@@ -17,6 +17,7 @@ Reddit: https://www.reddit.com/r/FACT0RN/ <br>
 
 Listed on the following exchanges:
 1. https://xeggex.com/asset/FACT
+2. https://txbit.io/Asset/FACT
 
 
 ## Coin Distribution
