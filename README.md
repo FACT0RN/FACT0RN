@@ -11,17 +11,18 @@ Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-
 Contact:
 
 E-mail: fact0rn@pm.me <br>
-Discord: https://discord.gg/gG7MXxS5Fd <br>
-Twitter: https://twitter.com/LionesEscanor <br>
+Discord: [https://discord.gg/tE2BNpgmtH](https://discord.gg/tE2BNpgmtH) <br>
+Twitter: [https://twitter.com/FACT0RN](https://twitter.com/FACT0RN) <br>
 Reddit: https://www.reddit.com/r/FACT0RN/ <br>
 
 Listed on the following exchanges:
-1. https://xeggex.com/asset/FACT
-
+1. https://xeggex.com/asset/fact <br>
+2. https://txbit.io/asset/fact <br>
+3. https://dex-trade.com/spot/trading/factusdt <br>
 
 ## Coin Distribution
 
-The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mehcanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange. (Okay, now that we have been listed you can buy them.)
+The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mechanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange. (Okay, now that we have been listed you can buy them.)
 
 
 ## Installation
