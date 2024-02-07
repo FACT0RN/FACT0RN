@@ -24,9 +24,7 @@ Listed on the following exchanges:
 
 The FACT0RN blockchain had no pre-sale, pre-allocation, pre-mining, pre-distribution, or any mechanism to distribute or sell coins in any way prior to launch. The only way to get FACT coins is to mine them yourself. This has been true from the beginning and will continue to be true until FACT0RN is listed on an exchange. (Okay, now that we have been listed you can buy them.)
 
-
 ## Installation
-
 
 Binaries are provided for Ubuntu 20.04 LTS. To build from source follow these steps:
 
@@ -40,11 +38,12 @@ make
 ```
     
 #### Binaries
+
 You can grab the binaries from the releases page, untar them and run them as-is.
 
 #### Tor
 
-To run nodes uing Tor you will need to install Tor. For ubuntu,
+To run nodes using Tor you will need to install Tor. For Ubuntu,
 
 ```
 sudo apt install tor 
@@ -62,11 +61,11 @@ Now you can start the factornd client and it will use the Tor Network.
 
 ## Running a node
 
-Running a node can be done for two purposes: relaying transactions and/or mining. For relaying transactions
+Running a node can be done for two purposes; relaying transactions and/or mining. For relaying transactions
 all you need to do is run the executable and you are good to go. If you want to mine then you need to set
 a username and password so that your miner is able to connect to it. 
 
-There are two ways to do this: set them in your config file or pass them in using parameters. 
+There are two ways to do this; set them in your config file or pass them in using parameters. 
 
 ### Method 1: config file
 
@@ -80,7 +79,7 @@ rpcuser=<Type a username of your choice>
 rpcpassword=<Type in any password of your choosing>
 ```
 
-That's it. You can start your node or use the cli tools and it will use that username and password automafically.
+That's it. You can start your node or use the cli tools and it will use that username and password automatically.
 
 ### Method 2: Command line RPC flags
 
@@ -113,7 +112,7 @@ node running here's how to create a wallet, generate an address and extract the
 scriptPubKey value that will allow you to earn mining rewards.
 
 
-From the project's root folder:
+From the projects root folder:
 
 ```
 src/factorn-wallet  -wallet=<wallet name>  -descriptors create
@@ -166,7 +165,7 @@ sympy
 base58
 ```
 
-If you are using Anaconda, here are the commands to install the needed packages.
+If you are using Anaconda, here are the commands to install the needed packages:
 
 ```
 conda install -c conda-forge cypari2 
