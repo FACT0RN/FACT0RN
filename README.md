@@ -49,7 +49,7 @@ To run nodes using Tor you will need to install Tor. For Ubuntu,
 sudo apt install tor 
 ```
 
-Now you will need to add the folowing three lines to ``/etc/tor/torrc``,
+Now you will need to add the following three lines to ``/etc/tor/torrc``,
 
 ```
 ControlPort 9051
@@ -70,7 +70,7 @@ There are two ways to do this; set them in your config file or pass them in usin
 ### Method 1: config file
 
 The advantage of this method is that you don't have to enter it anywhere. You can run your node and use
-the cli tools wihtout passing in the rpcuser and rpcpassword flags all the time. 
+the cli tools without passing in the rpcuser and rpcpassword flags all the time. 
 
 Create the file ``~/.factorn/factorn.conf`` if it does not exist. Add the following to it:
 
@@ -96,7 +96,7 @@ To run testnet do:
 ```
 ./factornd -rpcuser=<set your username here> -rpcpassword=<set your password here> -testnet
 ```
-You will need to know this ro run FACTOR.py from the mining code at ``https://github.com/FACT0RN/factoring``.
+You will need to know this to run FACTOR.py from the mining code at ``https://github.com/FACT0RN/factoring``.
  
 
 ## Mining
@@ -105,7 +105,7 @@ We have created a python script to mine. Here's what you will need to mine:
 
 1. Wallet
 2. Python 3
-3. Put it all togehter
+3. Put it all together
 
 First, we need a node running. See the installation section. Once you have your
 node running here's how to create a wallet, generate an address and extract the 
@@ -121,7 +121,7 @@ src/factorn-cli    getnewaddress
 src/factorn-cli    getaddressinfo <address from previous command>
 ```
 
-For example, from the get ``getaddresinfo`` command above you should get something
+For example, from the get ``getaddressinfo`` command above you should get something
 similar to:
 
 ```
