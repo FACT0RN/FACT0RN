@@ -5,7 +5,7 @@ A blockchain replacing hashing as Proof of Work (PoW) by integer factorization. 
 The FACT0RN blockchain seeks to allow its user to pay FACT coins to place integers in a deadpool for factorization. 
 
 Website: https://fact0rn.io <br>
-Whitepaper: https://fact0rn.io/FACT0RN_whitepaper.pdf <br>
+Whitepaper: [https://drive.google.com/file/d/1AJ5_MTIhdI-lz8X35WGi20JNnbN_q2vn/view](https://drive.google.com/file/d/1AJ5_MTIhdI-lz8X35WGi20JNnbN_q2vn/view) <br>
 Coinbase: https://blog.coinbase.com/fact0rn-blockchain-integer-factorization-as-proof-of-work-pow-bc48c6f2100b <br>
 
 Contact:
