@@ -38,6 +38,8 @@ static const int64_t nMaxTxIndexCache = 1024;
 static const int64_t max_filter_index_cache = 1024;
 //! Max memory allocated to coin DB specific cache (MiB)
 static const int64_t nMaxCoinsDBCache = 8;
+//!Default rate of checking pow on index load
+static const int nDefaultCheckPoWRate = 100;
 
 // Actually declared in validation.cpp; can't include because of circular dependency.
 extern RecursiveMutex cs_main;
