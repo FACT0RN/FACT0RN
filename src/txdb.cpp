@@ -277,6 +277,13 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
     pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
 
+    // The denominator rate at which we will check PoW when re-constructing
+    // m_block_index from disk. Higher values reduce the amount of checks
+    // performed, i.e. `100` means that 1 in 100 headers will be randomly
+    // selected for a PoW check, and `1` means every header will be checked.
+    int powcheck_rate = gArgs.GetArg("-idxpowcheckrate", nDefaultCheckPoWRate);
+    static FastRandomContext rngPoWCheck;
+
     // Load m_block_index
     while (pcursor->Valid()) {
         if (ShutdownRequested()) return false;
@@ -301,8 +308,12 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->wOffset        = diskindex.wOffset;
                 pindexNew->nTx            = diskindex.nTx;
 
-                if (!CheckProofOfWork( pindexNew->GetBlockHeader(), consensusParams))
+                // Randomly check PoW. This does not affect integrity, as every
+                // record is integrity-checked by leveldb; see also the
+                // CDBWrapper::CDBWrapper implementation
+                if (rngPoWCheck.randrange(powcheck_rate) == 0 && !CheckProofOfWork(pindexNew->GetBlockHeader(), consensusParams)) {
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
+                }
 
                 pcursor->Next();
             } else {
