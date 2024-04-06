@@ -144,7 +144,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     const uint16_t expected_bitsize = (block.nBits >> 1) + (block.nBits & 1);
 
     if (nP1_bitsize != expected_bitsize) {
-        LogPrintf("pow error: nP1 expected bitsize=%s, actual size=%s\n", nP1_bitsize, expected_bitsize);
+        LogPrintf("pow error: nP1 expected bitsize=%s, actual size=%s\n", expected_bitsize, nP1_bitsize);
         mpz_clear(n);
         mpz_clear(nP1);
         mpz_clear(nP2);
