@@ -85,7 +85,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_EQUAL                  : return "OP_EQUAL";
     case OP_EQUALVERIFY            : return "OP_EQUALVERIFY";
     case OP_RESERVED1              : return "OP_RESERVED1";
-    case OP_RESERVED2              : return "OP_RESERVED2";
+    case OP_ANNOUNCE               : return "OP_ANNOUNCE";
 
     // numeric
     case OP_1ADD                   : return "OP_1ADD";
@@ -129,7 +129,7 @@ std::string GetOpName(opcodetype opcode)
     case OP_CHECKMULTISIGVERIFY    : return "OP_CHECKMULTISIGVERIFY";
 
     // expansion
-    case OP_CHECKDIV               : return "OP_CHECKDIV";
+    case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
     case OP_NOP4                   : return "OP_NOP4";
@@ -137,8 +137,8 @@ std::string GetOpName(opcodetype opcode)
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
-    case OP_NOP9                   : return "OP_NOP9";
-    case OP_NOP10                  : return "OP_NOP10";
+    case OP_ANNOUNCEVERIFY         : return "OP_ANNOUNCEVERIFY";
+    case OP_CHECKDIVVERIFY         : return "OP_CHECKDIVVERIFY";
 
     // Opcode added by BIP 342 (Tapscript)
     case OP_CHECKSIGADD            : return "OP_CHECKSIGADD";

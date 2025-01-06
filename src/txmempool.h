@@ -16,6 +16,7 @@
 
 #include <amount.h>
 #include <coins.h>
+#include <deadpool/deadpool.h>
 #include <indirectmap.h>
 #include <policy/feerate.h>
 #include <primitives/transaction.h>
@@ -91,6 +92,7 @@ private:
     mutable Parents m_parents;
     mutable Children m_children;
     const CAmount nFee;             //!< Cached to avoid expensive parent-transaction lookups
+    const CAmount nBurnAmount;      //!< Amount burned for deadpool
     const size_t nTxWeight;         //!< ... and avoid recomputing tx weight (also used for GetTxSize())
     const size_t nUsageSize;        //!< ... and total memory usage
     const int64_t nTime;            //!< Local time when entering the mempool
@@ -99,6 +101,7 @@ private:
     const int64_t sigOpCost;        //!< Total sigop cost
     int64_t feeDelta;          //!< Used for determining the priority of the transaction for mining in a block
     LockPoints lockPoints;     //!< Track the height and time at which tx was final
+    UniqueDeadpoolIds vAnnounces;   //!< List of deadpool ids that this tx announces for
 
     // Information about descendants of this transaction that are in the
     // mempool; if we remove this transaction we must remove all of these
@@ -106,15 +109,17 @@ private:
     uint64_t nCountWithDescendants;  //!< number of descendant transactions
     uint64_t nSizeWithDescendants;   //!< ... and size
     CAmount nModFeesWithDescendants; //!< ... and total fees (all including us)
+    CAmount nBurnAmountWithDescendants; //!< total descendant deadpool coin burn amount
 
     // Analogous statistics for ancestor transactions
     uint64_t nCountWithAncestors;
     uint64_t nSizeWithAncestors;
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
+    CAmount nBurnAmountWithAncestors; //!< total ancestor deadpool coin burn amount
 
 public:
-    CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
+    CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee, const CAmount& _nBurnAmount,
                     int64_t _nTime, unsigned int _entryHeight,
                     bool spendsCoinbase,
                     int64_t nSigOpsCost, LockPoints lp);
@@ -122,6 +127,7 @@ public:
     const CTransaction& GetTx() const { return *this->tx; }
     CTransactionRef GetSharedTx() const { return this->tx; }
     const CAmount& GetFee() const { return nFee; }
+    const CAmount& GetBurnAmount() const { return nBurnAmount; }
     size_t GetTxSize() const;
     size_t GetTxWeight() const { return nTxWeight; }
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
@@ -131,10 +137,23 @@ public:
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }
 
+    const UniqueDeadpoolIds& GetAnnounces() const { return vAnnounces; }
+
+    /** whether this transaction has announcements */
+    bool HasAnnounces() const {
+        return !vAnnounces.empty();
+    }
+
+    /** whether this transaction has an announcement for a specific deadpoolid */
+    bool HasAnnounceFor(uint256 deadpoolId) const {
+        auto s = vAnnounces.find(deadpoolId);
+        return s != vAnnounces.end();
+    }
+
     // Adjusts the descendant state.
-    void UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount);
+    void UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount, CAmount burnAmount);
     // Adjusts the ancestor state
-    void UpdateAncestorState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount, int64_t modifySigOps);
+    void UpdateAncestorState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount, int64_t modifySigOps, CAmount burnAmount);
     // Updates the fee delta used for mining priority score, and the
     // modified fees with descendants.
     void UpdateFeeDelta(int64_t feeDelta);
@@ -144,6 +163,7 @@ public:
     uint64_t GetCountWithDescendants() const { return nCountWithDescendants; }
     uint64_t GetSizeWithDescendants() const { return nSizeWithDescendants; }
     CAmount GetModFeesWithDescendants() const { return nModFeesWithDescendants; }
+    CAmount GetBurnAmountWithDescendants() const { return nBurnAmountWithDescendants; }
 
     bool GetSpendsCoinbase() const { return spendsCoinbase; }
 
@@ -151,11 +171,26 @@ public:
     uint64_t GetSizeWithAncestors() const { return nSizeWithAncestors; }
     CAmount GetModFeesWithAncestors() const { return nModFeesWithAncestors; }
     int64_t GetSigOpCostWithAncestors() const { return nSigOpCostWithAncestors; }
+    CAmount GetBurnAmountWithAncestors() const { return nBurnAmountWithAncestors; }
 
     const Parents& GetMemPoolParentsConst() const { return m_parents; }
     const Children& GetMemPoolChildrenConst() const { return m_children; }
     Parents& GetMemPoolParents() const { return m_parents; }
     Children& GetMemPoolChildren() const { return m_children; }
+
+    bool ConflictsAnnounceWith(const CTxMemPoolEntry& other) const {
+        if (!HasAnnounces() || !other.HasAnnounces()) {
+            return false;
+        }
+
+        for (uint256 deadpoolId : vAnnounces) {
+            if (other.HasAnnounceFor(deadpoolId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     mutable size_t vTxHashesIdx; //!< Index in mempool's vTxHashes
     mutable Epoch::Marker m_epoch_marker; //!< epoch when last touched, useful for graph algorithms
@@ -164,33 +199,35 @@ public:
 // Helpers for modifying CTxMemPool::mapTx, which is a boost multi_index.
 struct update_descendant_state
 {
-    update_descendant_state(int64_t _modifySize, CAmount _modifyFee, int64_t _modifyCount) :
-        modifySize(_modifySize), modifyFee(_modifyFee), modifyCount(_modifyCount)
+    update_descendant_state(int64_t _modifySize, CAmount _modifyFee, int64_t _modifyCount, CAmount _modifyBurned) :
+        modifySize(_modifySize), modifyFee(_modifyFee), modifyCount(_modifyCount), modifyBurned(_modifyBurned)
     {}
 
     void operator() (CTxMemPoolEntry &e)
-        { e.UpdateDescendantState(modifySize, modifyFee, modifyCount); }
+        { e.UpdateDescendantState(modifySize, modifyFee, modifyCount, modifyBurned); }
 
     private:
         int64_t modifySize;
         CAmount modifyFee;
         int64_t modifyCount;
+        CAmount modifyBurned;
 };
 
 struct update_ancestor_state
 {
-    update_ancestor_state(int64_t _modifySize, CAmount _modifyFee, int64_t _modifyCount, int64_t _modifySigOpsCost) :
-        modifySize(_modifySize), modifyFee(_modifyFee), modifyCount(_modifyCount), modifySigOpsCost(_modifySigOpsCost)
+    update_ancestor_state(int64_t _modifySize, CAmount _modifyFee, int64_t _modifyCount, int64_t _modifySigOpsCost, CAmount _modifyBurned) :
+        modifySize(_modifySize), modifyFee(_modifyFee), modifyCount(_modifyCount), modifySigOpsCost(_modifySigOpsCost), modifyBurned(_modifyBurned)
     {}
 
     void operator() (CTxMemPoolEntry &e)
-        { e.UpdateAncestorState(modifySize, modifyFee, modifyCount, modifySigOpsCost); }
+        { e.UpdateAncestorState(modifySize, modifyFee, modifyCount, modifySigOpsCost, modifyBurned); }
 
     private:
         int64_t modifySize;
         CAmount modifyFee;
         int64_t modifyCount;
         int64_t modifySigOpsCost;
+        CAmount modifyBurned;
 };
 
 struct update_fee_delta
@@ -360,6 +397,31 @@ public:
     }
 };
 
+
+/** \class CompareTxMemPoolEntryByAncestorBurnFee
+ *
+ *  Sort an entry by burn amount with all ancestors and then by
+ *  CompareTxMemPoolEntryByAncestorFee::operator;
+ */
+class CompareTxMemPoolEntryByAncestorBurnFee : private CompareTxMemPoolEntryByAncestorFee
+{
+public:
+    template<typename T>
+    bool operator()(const T& a, const T& b) const
+    {
+        double a_mod_fee, a_size, b_mod_fee, b_size;
+
+        CAmount a_burned = a.GetBurnAmountWithAncestors();
+        CAmount b_burned = a.GetBurnAmountWithAncestors();
+
+        if (a_burned != b_burned) {
+            return a_burned > b_burned;
+        }
+
+        return CompareTxMemPoolEntryByAncestorFee::operator()(a, b);
+    }
+};
+
 // Multi_index tag names
 struct descendant_score {};
 struct entry_time {};
@@ -387,6 +449,9 @@ struct TxMempoolInfo
 
     /** The fee delta. */
     int64_t nFeeDelta;
+
+    /** Amount of deadpool burn */
+    CAmount burned;
 };
 
 /** Reason why a transaction was removed from the mempool,
@@ -530,7 +595,7 @@ public:
             boost::multi_index::ordered_non_unique<
                 boost::multi_index::tag<ancestor_score>,
                 boost::multi_index::identity<CTxMemPoolEntry>,
-                CompareTxMemPoolEntryByAncestorFee
+                CompareTxMemPoolEntryByAncestorBurnFee
             >
         >
     > indexed_transaction_set;

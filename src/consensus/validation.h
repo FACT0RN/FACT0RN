@@ -53,6 +53,7 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
+    TX_DEADPOOL_NO_ANNOUNCE, //!< No valid announcement could be found for a deadpool claim
 };
 
 /** A "reason" why a block was invalid, suitable for determining whether the

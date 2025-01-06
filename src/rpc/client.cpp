@@ -191,6 +191,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnodeaddresses", 0, "count"},
     { "addpeeraddress", 1, "port"},
     { "stop", 0, "wait" },
+    { "listdeadpoolentries", 0, "num_blocks"},
+    { "listdeadpoolentries", 1, "limit"},
+    { "listdeadpoolentries", 2, "include_claimed"},
+    { "listdeadpoolentries", 3, "include_announced"},
+    { "createdeadpoolentry", 0, "amount"},
+    { "announcedeadpoolclaim", 0, "burn_amount"},
+    { "claimdeadpooltxs", 0, "inputs"},
 };
 // clang-format on
 

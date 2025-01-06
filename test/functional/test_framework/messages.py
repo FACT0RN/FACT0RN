@@ -31,6 +31,7 @@ import time
 
 from test_framework.siphash import siphash256
 from test_framework.util import hex_str_to_bytes, assert_equal
+from test_framework.ghash import ghash_from_cblockheader
 
 import ctypes
 import random
@@ -672,13 +673,6 @@ class CBlockHeader_C(ctypes.Structure):
               ("nBits",    ctypes.c_uint16)
              ]
 
-#Load gHash
-import os
-print(os.getcwd())
-
-gHash = ctypes.CDLL("test_framework/gHash.so").gHash
-gHash.restype = uint1024
-
 class CBlockHeader:
     __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce",
                  "nTime", "nVersion", "sha256", "nP1", "wOffset")
@@ -853,28 +847,8 @@ class CBlock(CBlockHeader):
 
     def solve(self):
         #Debuggin purpose
-        assert self.nBits >= 30, "nBits expected to be at least 30, but nBits=" + str(self.nBits) 
-        assert self.nBits <= 2048, "nBits expected to be at most 2048, but nBits=" + str(self.nBits) 
-
-        #Define function to convert sha2 hashes into expected ctypes
-        def hashToArray( Hash ):
-            if Hash == 0:
-                return [0,0,0,0]
-
-            number = Hash
-            MASK = (1 << 64) - 1
-            arr = [ ( number >> 64*(jj) )&MASK for jj in range(0, 4) ]
-
-            return arr
-
-        #Create CBlockHeader in C
-        blockHeader = CBlockHeader_C() 
-        blockHeader.nVersion       = self.nVersion
-        blockHeader.hashPrevBlock  = (ctypes.c_uint64 * 4)(*hashToArray(self.hashPrevBlock))
-        blockHeader.hashMerkleRoot = (ctypes.c_uint64 * 4)(*hashToArray(self.hashMerkleRoot))
-        blockHeader.nTime          = self.nTime
-        blockHeader.nBits          = self.nBits
-        blockHeader.nNonce         = self.nNonce
+        assert self.nBits >= 30, "nBits expected to be at least 30, but nBits=" + str(self.nBits)
+        assert self.nBits <= 2048, "nBits expected to be at most 2048, but nBits=" + str(self.nBits)
 
         #Get paramter C object
         params = CParams()
@@ -889,9 +863,9 @@ class CBlock(CBlockHeader):
             nonce = random.randint(0, (1<<64) - 1 )
             blockHeader.nNonce = nonce
             self.nNonce        = nonce
-            
-            #Get W from gHash       
-            W = gHash(blockHeader,params)
+
+            #Get W from gHash
+            W = ghash_from_cblockheader(self, params.hashRounds)
             W = W.toInt()
 
             #Get candidates to solve the block

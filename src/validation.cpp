@@ -15,6 +15,8 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <cuckoocache.h>
+#include <deadpool/announcedb.h>
+#include <deadpool/deadpool.h>
 #include <deploymentstatus.h>
 #include <flatfile.h>
 #include <hash.h>
@@ -304,6 +306,50 @@ bool CheckSequenceLocks(CBlockIndex* tip,
     return EvaluateSequenceLocks(index, lockPair);
 }
 
+/**
+ * Check whether a transaction is trying to claim a deadpool entry and has
+ * valid and mature announcement preceding it.
+ */
+bool DeadpoolClaimIsAnnounced(const CTransaction& tx,
+                              const CCoinsView& coins_view,
+                              const CAnnounceDB* anndb,
+                              const Consensus::Params& params,
+                              const int32_t nTargetHeight,
+                              TxValidationState& state)
+{
+    AssertLockHeld(cs_main);
+
+    // the minimum height of our window can never be lower than block 1, as
+    // genesis block outputs are invalid.
+    int64_t minHeight = std::max((int64_t)1, nTargetHeight - params.DeadpoolAnnounceMaxAge());
+
+    // the maximum height of our search window
+    const int64_t maxHeight = nTargetHeight - params.nDeadpoolAnnounceMaturity;
+
+    for (auto txin : tx.vin) {
+        Coin coin;
+        if (!coins_view.GetCoin(txin.prevout, coin)) {
+            state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
+            return error("%s: BUG! PLEASE REPORT THIS! UTXO (%s:%u) was lost when checking deadpool entries at height %u while found earlier.\n",
+                          __func__, txin.prevout.hash.GetHex(), txin.prevout.n, (unsigned)nTargetHeight);
+        }
+
+        if (IsDeadpoolEntry(coin.out)) {
+            const uint256 deadpoolId = GetEntryNHash(coin.out);
+            const uint256 claimHash = GetClaimHashFromScriptSig(txin);
+
+            // no announcement can be or is found
+            if (maxHeight < minHeight ||
+                !anndb->ClaimExists(deadpoolId, claimHash, minHeight, maxHeight)) {
+                state.Invalid(TxValidationResult::TX_DEADPOOL_NO_ANNOUNCE, "deadpool-claim-no-announce");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 // Returns the script flags which should be checked for a given block
 static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::Params& chainparams);
 
@@ -503,6 +549,9 @@ private:
     // PolicyScriptChecks(). This requires that all inputs either be in our
     // utxo set or in the mempool.
     bool ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws, PrecomputedTransactionData &txdata) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
+
+    // Run checks on deadpool claims.
+    bool DeadpoolClaimChecks(const ATMPArgs& args, Workspace& ws) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
 
     // Try to add the transaction to the mempool, removing any conflicts first.
     // Returns true if the transaction is in the mempool after any size
@@ -715,7 +764,25 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(),
+    // Deadpool: we do not care whether there has been a softfork activation yet
+    // here, because both before and after, OP_ANNOUNCE makes coins unspendable.
+    CAmount nBurnAmount = 0;
+    for (const CTxOut &txout : tx.vout) {
+
+        // All deadpool related bigints must adhere to limits
+        // and be canonically encoded
+        if (!CheckTxOutDeadpoolIntegers(txout, state)) {
+            return false; // state is set by CheckTxOutDeadpoolIntegers
+        }
+
+        if (IsDeadpoolAnnouncement(txout)) {
+            if (txout.nValue >= args.m_chainparams.GetConsensus().nDeadpoolAnnounceMinBurn) {
+                nBurnAmount += txout.nValue; // add the burn amount to the counter
+            }
+        }
+    }
+
+    entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, nBurnAmount, nAcceptTime, m_active_chainstate.m_chain.Height(),
             fSpendsCoinbase, nSigOpsCost, lp));
     unsigned int nSize = entry->GetTxSize();
 
@@ -976,6 +1043,26 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws, P
     return true;
 }
 
+bool MemPoolAccept::DeadpoolClaimChecks(const ATMPArgs& args, Workspace& ws)
+{
+  const CTransaction& tx = *ws.m_ptx;
+  const CChainParams& chainparams = args.m_chainparams;
+  const int32_t height = m_active_chainstate.m_chain.Tip()->nHeight + 1;
+  TxValidationState& state = ws.m_state;
+
+  // this check always passes before deployment activation
+  if (!DeploymentActiveAfter(m_active_chainstate.m_chain.Tip(), chainparams.GetConsensus(), Consensus::DEPLOYMENT_DEADPOOL)) {
+      return true;
+  }
+
+  if (!DeadpoolClaimIsAnnounced(tx, m_view, m_active_chainstate.m_announce_db.get(), chainparams.GetConsensus(), height, state)) {
+      return false;
+  }
+
+  return true;
+
+}
+
 bool MemPoolAccept::Finalize(const ATMPArgs& args, Workspace& ws)
 {
     const CTransaction& tx = *ws.m_ptx;
@@ -1041,6 +1128,8 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     if (!ConsensusScriptChecks(args, ws, txdata)) return MempoolAcceptResult::Failure(ws.m_state);
 
+    if (!DeadpoolClaimChecks(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
+
     // Tx was accepted, but not added
     if (args.m_test_accept) {
         return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_base_fees);
@@ -1087,7 +1176,7 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
 
     for (Workspace& ws : workspaces) {
         PrecomputedTransactionData txdata;
-        if (!PolicyScriptChecks(args, ws, txdata)) {
+        if (!PolicyScriptChecks(args, ws, txdata) || !DeadpoolClaimChecks(args, ws)) {
             // Exit early to avoid doing pointless work. Update the failed tx result; the rest are unfinished.
             package_state.Invalid(PackageValidationResult::PCKG_TX, "transaction failed");
             results.emplace(ws.m_ptx->GetWitnessHash(), MempoolAcceptResult::Failure(ws.m_state));
@@ -1187,22 +1276,22 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
     return nullptr;
 }
 
-CAmount GetBlockSubsidy( const CBlockHeader& block) 
+CAmount GetBlockSubsidy( const CBlockHeader& block)
 {
     //Get the bitsize of the given factor for this block.
     mpz_t nP1;
     mpz_init(nP1);
-    mpz_import( nP1, 16, -1, 8, 0, 0, block.nP1.u64_begin()); 
-    const uint16_t nP1_bitsize = mpz_sizeinbase(nP1, 2); 
+    mpz_import( nP1, 16, -1, 8, 0, 0, block.nP1.u64_begin());
+    const uint16_t nP1_bitsize = mpz_sizeinbase(nP1, 2);
     mpz_clear(nP1);
 
     //if nP1_bitsize == 1, then that means this function is being called to
-    //create a TemplateBlock for mining; note that gmp returns 1 when the nP1 is 
+    //create a TemplateBlock for mining; note that gmp returns 1 when the nP1 is
     //exactly 0 in the function mpz_sizeinbase. In that case, return 0 as the reward.
     //This is to avoid blocks submitted and accepted without rewards.
     //This will cause failure to validate after the miner factors the number,
     //and submits his answer for the new block because that new block will
-    //enter this function upon validation with the right nP1_bitsize which 
+    //enter this function upon validation with the right nP1_bitsize which
     //will not match 0.
     if( nP1_bitsize == 1){
         return 0;
@@ -1215,9 +1304,9 @@ CAmount GetBlockSubsidy( const CBlockHeader& block)
     // Then, ~60% of these semiprimes are of bitsize 2b and 40% are of bitsize 2b-1. These values were
     // observed heuristically, and it means for odd 'nBits' on the blockchain we can demand b digit factors
     // as they are abundant enough(40%) and reward miners as if nBits was nBits + 1, because of that 10% scarcity.
-    // 
+    //
     // In this manner we balance the difficulty with a better reward than would have been otherwise given.
-    const uint16_t expected_bitsize = (block.nBits >> 1) + (block.nBits&1); 
+    const uint16_t expected_bitsize = (block.nBits >> 1) + (block.nBits&1);
 
     //Enforce that the given factor is of the expected size,
     //and hence implying they must be the same size.
@@ -1230,7 +1319,7 @@ CAmount GetBlockSubsidy( const CBlockHeader& block)
 
     //Compute reward function.
     const double rConstant_co_scale = 11178600;
-    
+
     //Compute exponent
     const double exp = ( nP1_bitsize )/32.0f ;
 
@@ -1281,6 +1370,10 @@ void CChainState::InitCoinsDB(
 
     m_coins_views = std::make_unique<CoinsViews>(
         leveldb_name, cache_size_bytes, in_memory, should_wipe);
+}
+
+void CChainState::InitAnnounceDB(size_t cache_size_bytes, bool in_memory, bool should_wipe) {
+    m_announce_db = std::make_unique<CAnnounceDB>(cache_size_bytes, in_memory, should_wipe);
 }
 
 void CChainState::InitCoinsCache(size_t cache_size_bytes)
@@ -1595,6 +1688,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view)
 {
     bool fClean = true;
+    std::vector<CLocdAnnouncement> undoAnnounces;
 
     CBlockUndo blockUndo;
     if (!UndoReadFromDisk(blockUndo, pindex)) {
@@ -1640,6 +1734,17 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 fClean = fClean && res != DISCONNECT_UNCLEAN;
             }
             // At this point, all of txundo.vprevout should have been moved out.
+
+            // Extract a vector of Locator/CAnnounce pairs to remove in a batch
+            ExtractAnnouncements(tx, 0, undoAnnounces);
+        }
+    }
+
+    // Remove all announcements from the AnnounceDB
+    // We do this regardless of activation state
+    if (undoAnnounces.size() > 0) {
+        if (!m_announce_db->RemoveAnnouncements(undoAnnounces)) {
+            fClean = false;
         }
     }
 
@@ -1735,6 +1840,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
+    // Enforce Deadpool softfork
+    if (DeploymentActiveAt(*pindex, consensusparams, Consensus::DEPLOYMENT_DEADPOOL)) {
+        flags |= SCRIPT_VERIFY_DEADPOOL;
+    }
+
     return flags;
 }
 
@@ -1744,6 +1854,7 @@ static int64_t nTimeCheck = 0;
 static int64_t nTimeForks = 0;
 static int64_t nTimeVerify = 0;
 static int64_t nTimeConnect = 0;
+static int64_t nTimeAnnounce = 0;
 static int64_t nTimeIndex = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
@@ -1927,6 +2038,9 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
     }
 
+    // Do deadpool validation only if the deadpool deployment is activated
+    const bool deadpool_active = DeploymentActiveAfter(pindex, m_params.GetConsensus(), Consensus::DEPLOYMENT_DEADPOOL);
+
     // Get the script flags for this block
     unsigned int flags = GetBlockScriptFlags(pindex, m_params.GetConsensus());
 
@@ -1944,6 +2058,7 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
     std::vector<int> prevheights;
+    std::vector<CLocdAnnouncement> newAnnouncements = {};
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
@@ -2006,7 +2121,24 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
                 return error("ConnectBlock(): CheckInputScripts on %s failed with %s",
                     tx.GetHash().ToString(), state.ToString());
             }
+
             control.Add(vChecks);
+
+            if (deadpool_active) {
+                // Check all non-coinbase transactions for deadpool claims and validate there has been an announcement
+                if (!DeadpoolClaimIsAnnounced(tx, view, m_announce_db.get(), m_params.GetConsensus(), pindex->nHeight+1, tx_state)) {
+                    state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+                                  tx_state.GetRejectReason(), tx_state.GetDebugMessage());
+                    return error("ConnectBlock(): DeadpoolClaimChecks on %s failed with %s",
+                      tx.GetHash().ToString(), state.ToString());
+                }
+
+            }
+
+            // Prepare announcement indexing into announcedb for each non-coinbase tx
+            // do this regardless of activation state
+            ExtractAnnouncements(tx, pindex->nHeight, newAnnouncements);
+
         }
 
         CTxUndo undoDummy;
@@ -2017,6 +2149,29 @@ bool CChainState::ConnectBlock(const CBlock& block, BlockValidationState& state,
     }
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
+
+    // Write the announcements from the processed block(s) to the announcedb
+    // if this is not just a check if the block can be connected
+    // do this regardless of activation state
+    if (!fJustCheck && newAnnouncements.size() > 0) {
+
+        // Make sure the burn amount is higher than the minimum for this chain
+        for (auto it = newAnnouncements.begin(); it != newAnnouncements.end();) {
+            if (it->announcement.out.nValue < m_params.GetConsensus().nDeadpoolAnnounceMinBurn) {
+                it = newAnnouncements.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // Add announcements to the announcedb
+        if (!m_announce_db->AddAnnouncements(newAnnouncements)) {
+            return false;
+        }
+    }
+
+    int64_t nTime3a = GetTimeMicros(); nTimeAnnounce += nTime3a - nTime3;
+    LogPrint(BCLog::BENCH, "      - Write %u announcements to db: %.2fms (%.3fms/ann) [%.2fs (%.2fms/blk)]\n", (unsigned)newAnnouncements.size(), MILLI * (nTime3a - nTime3), MILLI * (nTime3a - nTime3) / newAnnouncements.size(), nTimeAnnounce * MICRO, nTimeAnnounce * MILLI / nBlocksTotal);
 
     CAmount blockReward = nFees + GetBlockSubsidy(pindex->GetBlockHeader());
     if (block.vtx[0]->GetValueOut() > blockReward) {
@@ -3310,6 +3465,38 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
                 return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "bad-witness-merkle-match", strprintf("%s : witness merkle commitment mismatch", __func__));
             }
             fHaveWitness = true;
+        }
+    }
+
+    if (DeploymentActiveAfter(pindexPrev, consensusParams, Consensus::DEPLOYMENT_DEADPOOL)) {
+        // track deadpool announcements by hash-of-N
+        UniqueDeadpoolIds foundAnnouncements;
+
+        for (auto tx : block.vtx) {
+            TxValidationState tx_state;
+
+            // Check limits and encoding of output deadpool integers early
+            for (const CTxOut &txout : tx->vout) {
+                if (!CheckTxOutDeadpoolIntegers(txout, tx_state)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, tx_state.GetRejectReason(),
+                                         strprintf("Deadpool Integer check failed (tx hash %s)", tx->GetHash().ToString()));
+                }
+            }
+
+            // Extract a list of announcements and compare to all other announcements
+            // found in this block, do not allow multiple announcements for one deadpool
+            // entry.
+            std::vector<CLocdAnnouncement> list = {};
+            if (ExtractAnnouncements(*tx, 0, list)) {
+                for (auto ann : list) {
+                    uint256 nHash = ann.announcement.NHash();
+                    auto search = foundAnnouncements.find(nHash);
+                    if (search != foundAnnouncements.end()) {
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "dp-mult-ann", "more than one announcement for a single deadpool entry");
+                    }
+                    foundAnnouncements.emplace(nHash);
+                }
+            }
         }
     }
 

@@ -15,6 +15,7 @@
 #include <coins.h>
 #include <consensus/validation.h>
 #include <crypto/common.h> // for ReadLE64
+#include <deadpool/announcedb.h> // for CAnnounceDB
 #include <fs.h>
 #include <node/utxo_snapshot.h>
 #include <policy/feerate.h>
@@ -601,6 +602,9 @@ public:
     //! CChainState instances.
     BlockManager& m_blockman;
 
+    //! Tracks announcements, on the chaintip only, reflects m_chain
+    std::unique_ptr<CAnnounceDB> m_announce_db;
+
     explicit CChainState(
         CTxMemPool* mempool,
         BlockManager& blockman,
@@ -617,6 +621,13 @@ public:
         bool in_memory,
         bool should_wipe,
         std::string leveldb_name = "chainstate");
+
+    /**
+     * Initialize the AnnounceDB that contains all deadpool solution announcements.
+     *
+     * All parameters are forwarded to CAnnounceDB
+     */
+    void InitAnnounceDB(size_t cache_size_bytes, bool in_memory, bool should_wipe);
 
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).

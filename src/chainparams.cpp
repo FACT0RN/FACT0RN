@@ -100,7 +100,7 @@ public:
         consensus.nPowTargetSpacing  =   30 * 60;                     // 30 Minutes * 60 Seconds                      |-> Seconds in 30 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting  = false;
-        consensus.nRuleChangeActivationThreshold = 100;
+        consensus.nRuleChangeActivationThreshold = 639; // 95% of 672 (rounded up from 638.4)
         consensus.nMinerConfirmationWindow = 672; // nPowTargetTimespan / nPowTargetSpacing
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
@@ -117,6 +117,17 @@ public:
 
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
+
+        // Deadpool softfork
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].bit = 27;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nStartTime = 1735689600LL; // 2025-01-01
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nTimeout = 1748736000LL; // 2025-06-01
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].min_activation_height = 155000; // no delay
+
+        // Deadpool parametrization
+        consensus.nDeadpoolAnnounceMaturity = 100;
+        consensus.nDeadpoolAnnounceValidity = 672;
+        consensus.nDeadpoolAnnounceMinBurn = 1000000; // 0.01 COIN
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -209,6 +220,17 @@ public:
 
         //Number of Miller-Rabin rounds, determines primality with false positive rate of 4^(-rounds).
         consensus.MillerRabinRounds = 50 ;
+
+        // Deadpool softfork
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].bit = 27;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nStartTime = 1735689600LL; // Jan 1st, 2025
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].min_activation_height = 0; // No activation delay
+
+        // Deadpool parametrization
+        consensus.nDeadpoolAnnounceMaturity = 5;
+        consensus.nDeadpoolAnnounceValidity = 100;
+        consensus.nDeadpoolAnnounceMinBurn = 1000000; // 0.01 COIN
 
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
@@ -356,6 +378,17 @@ public:
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
 
+        // Deadpool softfork
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].bit = 27;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].min_activation_height = (4 * consensus.nMinerConfirmationWindow); // Add one more epoch than required
+
+        // Deadpool parametrization
+        consensus.nDeadpoolAnnounceMaturity = 5;
+        consensus.nDeadpoolAnnounceValidity = 100;
+        consensus.nDeadpoolAnnounceMinBurn = 1000000; // 0.01 COIN
+
         vFixedSeeds.clear();
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -397,8 +430,8 @@ public:
         consensus.nPowTargetSpacing = 30 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
-        consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
+        consensus.nRuleChangeActivationThreshold = 24; // 75% for testchains
+        consensus.nMinerConfirmationWindow = 32; // Faster than normal for regtest (32 instead of 2016)
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
@@ -422,6 +455,17 @@ public:
 
 	    //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
 	    consensus.hashRounds = 1;
+
+        // Deadpool softfork
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].bit = 27;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_DEADPOOL].min_activation_height = (4 * consensus.nMinerConfirmationWindow); // Add one more epoch than required
+
+        // Deadpool parametrization
+        consensus.nDeadpoolAnnounceMaturity = 5;
+        consensus.nDeadpoolAnnounceValidity = 100;
+        consensus.nDeadpoolAnnounceMinBurn = 1000000; // 0.01 COIN
 
         UpdateActivationParametersFromArgs(args);
 

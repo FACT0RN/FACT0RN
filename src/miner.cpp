@@ -91,6 +91,7 @@ BlockAssembler::BlockAssembler(CChainState& chainstate, const CTxMemPool& mempoo
 void BlockAssembler::resetBlock()
 {
     inBlock.clear();
+    vIncludedAnnounces.clear();
 
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
@@ -227,6 +228,7 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 // - transaction finality (locktime)
 // - premature witness (in case segwit transactions are added to mempool before
 //   segwit activation)
+// - duplicate announcement deadpool ids
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package) const
 {
     for (CTxMemPool::txiter it : package) {
@@ -234,6 +236,15 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
             return false;
         if (!fIncludeWitness && it->GetTx().HasWitness())
             return false;
+
+        if (it->HasAnnounces()) {
+            for (uint256 deadpoolId : it->GetAnnounces()) {
+                auto searchAnn = vIncludedAnnounces.find(deadpoolId);
+                if (searchAnn != vIncludedAnnounces.end()) {
+                    return false;
+                }
+            }
+        }
     }
     return true;
 }
@@ -248,6 +259,9 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     nBlockSigOpsCost += iter->GetSigOpCost();
     nFees += iter->GetFee();
     inBlock.insert(iter);
+
+    UniqueDeadpoolIds anns = iter->GetAnnounces();
+    vIncludedAnnounces.insert(anns.begin(), anns.end());
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", DEFAULT_PRINTPRIORITY);
     if (fPrintPriority) {

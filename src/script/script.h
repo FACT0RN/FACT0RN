@@ -138,7 +138,8 @@ enum opcodetype
     OP_EQUAL = 0x87,
     OP_EQUALVERIFY = 0x88,
     OP_RESERVED1 = 0x89,
-    OP_RESERVED2 = 0x8a,
+    OP_ANNOUNCE = 0x8a,
+    OP_RESERVED2 = OP_ANNOUNCE,
 
     // numeric
     OP_1ADD = 0x8b,
@@ -185,7 +186,7 @@ enum opcodetype
     OP_CHECKMULTISIGVERIFY = 0xaf,
 
     // expansion
-    OP_CHECKDIV = 0xb0,
+    OP_NOP1 = 0xb0,
     OP_CHECKLOCKTIMEVERIFY = 0xb1,
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
     OP_CHECKSEQUENCEVERIFY = 0xb2,
@@ -195,8 +196,10 @@ enum opcodetype
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
-    OP_NOP9 = 0xb8,
-    OP_NOP10 = 0xb9,
+    OP_ANNOUNCEVERIFY = 0xb8,
+    OP_NOP9 = OP_ANNOUNCEVERIFY,
+    OP_CHECKDIVVERIFY = 0xb9,
+    OP_NOP10 = OP_CHECKDIVVERIFY,
 
     // Opcode added by BIP 342 (Tapscript)
     OP_CHECKSIGADD = 0xba,
@@ -542,7 +545,7 @@ public:
      */
     bool IsUnspendable() const
     {
-        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
+        return (size() > 0 && (*begin() == OP_RETURN || *begin() == OP_ANNOUNCE) || size() > MAX_SCRIPT_SIZE);
     }
 
     void clear()

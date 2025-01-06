@@ -174,6 +174,7 @@ struct TestMemPoolEntryHelper
 {
     // Default values
     CAmount nFee;
+    CAmount nBurned;
     int64_t nTime;
     unsigned int nHeight;
     bool spendsCoinbase;
@@ -181,7 +182,7 @@ struct TestMemPoolEntryHelper
     LockPoints lp;
 
     TestMemPoolEntryHelper() :
-        nFee(0), nTime(0), nHeight(1),
+        nFee(0), nBurned(0), nTime(0), nHeight(1),
         spendsCoinbase(false), sigOpCost(4) { }
 
     CTxMemPoolEntry FromTx(const CMutableTransaction& tx) const;
@@ -189,6 +190,7 @@ struct TestMemPoolEntryHelper
 
     // Change the default value
     TestMemPoolEntryHelper &Fee(CAmount _fee) { nFee = _fee; return *this; }
+    TestMemPoolEntryHelper &Burned(CAmount _burned) { nBurned = _burned; return *this; }
     TestMemPoolEntryHelper &Time(int64_t _time) { nTime = _time; return *this; }
     TestMemPoolEntryHelper &Height(unsigned int _height) { nHeight = _height; return *this; }
     TestMemPoolEntryHelper &SpendsCoinbase(bool _flag) { spendsCoinbase = _flag; return *this; }

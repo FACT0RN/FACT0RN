@@ -140,6 +140,9 @@ enum
 
     // Making unknown public key versions (in BIP 342 scripts) non-standard
     SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE = (1U << 20),
+
+    // Deadpool validation
+    SCRIPT_VERIFY_DEADPOOL = (1U << 29),
 };
 
 bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned int flags, ScriptError* serror);
@@ -248,6 +251,11 @@ public:
          return false;
     }
 
+    virtual bool CheckClaimer(const std::vector<unsigned char>& claimHash, const std::vector<unsigned char>& pHash) const
+    {
+        return false;
+    }
+
     virtual ~BaseSignatureChecker() {}
 };
 
@@ -284,6 +292,7 @@ public:
     bool CheckSchnorrSignature(Span<const unsigned char> sig, Span<const unsigned char> pubkey, SigVersion sigversion, const ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;
     bool CheckSequence(const CScriptNum& nSequence) const override;
+    bool CheckClaimer(const std::vector<unsigned char>&claimHash, const std::vector<unsigned char>& pHash) const override;
 };
 
 using TransactionSignatureChecker = GenericTransactionSignatureChecker<CTransaction>;
@@ -314,6 +323,10 @@ public:
     bool CheckSequence(const CScriptNum& nSequence) const override
     {
         return m_checker.CheckSequence(nSequence);
+    }
+    bool CheckClaimer(const std::vector<unsigned char>& claimHash, const std::vector<unsigned char>& pHash) const override
+    {
+        return m_checker.CheckClaimer(claimHash, pHash);
     }
 };
 

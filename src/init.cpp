@@ -23,6 +23,7 @@
 #include <httpserver.h>
 #include <index/blockfilterindex.h>
 #include <index/coinstatsindex.h>
+#include <index/deadpoolindex.h>
 #include <index/txindex.h>
 #include <init/common.h>
 #include <interfaces/chain.h>
@@ -171,6 +172,9 @@ void Interrupt(NodeContext& node)
     if (g_coin_stats_index) {
         g_coin_stats_index->Interrupt();
     }
+    if (g_deadpoolindex) {
+        g_deadpoolindex->Interrupt();
+    }
 }
 
 void Shutdown(NodeContext& node)
@@ -249,6 +253,11 @@ void Shutdown(NodeContext& node)
     }
     ForEachBlockFilterIndex([](BlockFilterIndex& index) { index.Stop(); });
     DestroyAllBlockFilterIndexes();
+
+    if (g_deadpoolindex) {
+        g_deadpoolindex->Stop();
+        g_deadpoolindex.reset();
+    }
 
     // Any future callbacks will be dropped. This should absolutely be safe - if
     // missing a callback results in an unrecoverable situation, unclean shutdown
@@ -1309,6 +1318,10 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     nTotalCache = std::min(nTotalCache, nMaxDbCache << 20); // total cache cannot be greater than nMaxDbcache
     int64_t nBlockTreeDBCache = std::min(nTotalCache / 8, nMaxBlockDBCache << 20);
     nTotalCache -= nBlockTreeDBCache;
+    int64_t nDeadpoolIndexCache = std::min(nTotalCache / 16, nMaxDeadpoolIndexCache << 20);
+    nTotalCache -= nDeadpoolIndexCache;
+    int64_t nAnnounceDbCache = std::min(nTotalCache / 32, nMaxAnnounceDbCache << 20);
+    nTotalCache -= nAnnounceDbCache;
     int64_t nTxIndexCache = std::min(nTotalCache / 8, args.GetBoolArg("-txindex", DEFAULT_TXINDEX) ? nMaxTxIndexCache << 20 : 0);
     nTotalCache -= nTxIndexCache;
     int64_t filter_index_cache = 0;
@@ -1325,6 +1338,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     int64_t nMempoolSizeMax = args.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
     LogPrintf("Cache configuration:\n");
     LogPrintf("* Using %.1f MiB for block index database\n", nBlockTreeDBCache * (1.0 / 1024 / 1024));
+    LogPrintf("* Using %.1f MiB for deadpool index database\n", nDeadpoolIndexCache * (1.0 / 1024 / 1024));
     if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
         LogPrintf("* Using %.1f MiB for transaction index database\n", nTxIndexCache * (1.0 / 1024 / 1024));
     }
@@ -1412,6 +1426,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                         /* cache_size_bytes */ nCoinDBCache,
                         /* in_memory */ false,
                         /* should_wipe */ fReset || fReindexChainState);
+
+                    chainstate->InitAnnounceDB(nAnnounceDbCache, false, fReset || fReindexChainState);
 
                     chainstate->CoinsErrorCatcher().AddReadErrCallback([]() {
                         uiInterface.ThreadSafeMessageBox(
@@ -1544,6 +1560,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     }
 
     // ********************************************************* Step 8: start indexers
+
+    //TODO deadpool: this index can now be made optional
+    g_deadpoolindex = std::make_unique<DeadpoolIndex>(nDeadpoolIndexCache, false, fReindex);
+    if (!g_deadpoolindex->Start(chainman.ActiveChainstate())) {
+      return false;
+    }
+
     if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
         g_txindex = std::make_unique<TxIndex>(nTxIndexCache, false, fReindex);
         if (!g_txindex->Start(chainman.ActiveChainstate())) {

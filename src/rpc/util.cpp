@@ -794,7 +794,7 @@ void RPCResult::ToSections(Sections& sections, const OuterType outer_type, const
         return;
     }
     case Type::STR_AMOUNT: {
-        sections.PushSection({indent + maybe_key + "n" + maybe_separator, Description("numeric")});
+        sections.PushSection({indent + maybe_key + "num" + maybe_separator, Description("numeric")});
         return;
     }
     case Type::STR_HEX: {
@@ -802,7 +802,7 @@ void RPCResult::ToSections(Sections& sections, const OuterType outer_type, const
         return;
     }
     case Type::NUM: {
-        sections.PushSection({indent + maybe_key + "n" + maybe_separator, Description("numeric")});
+        sections.PushSection({indent + maybe_key + "num" + maybe_separator, Description("numeric")});
         return;
     }
     case Type::NUM_TIME: {

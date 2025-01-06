@@ -67,6 +67,8 @@ enum class TxoutType {
     WITNESS_V0_SCRIPTHASH,
     WITNESS_V0_KEYHASH,
     WITNESS_V1_TAPROOT,
+    DEADPOOL_ENTRY,
+    DEADPOOL_ANNOUNCE,
     WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
 };
 

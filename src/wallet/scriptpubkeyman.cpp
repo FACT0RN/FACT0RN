@@ -103,6 +103,8 @@ IsMineResult IsMineInner(const LegacyScriptPubKeyMan& keystore, const CScript& s
 
     CKeyID keyID;
     switch (whichType) {
+    case TxoutType::DEADPOOL_ANNOUNCE:
+    case TxoutType::DEADPOOL_ENTRY:
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:

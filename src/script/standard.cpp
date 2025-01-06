@@ -55,6 +55,8 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::SCRIPTHASH: return "scripthash";
     case TxoutType::MULTISIG: return "multisig";
     case TxoutType::NULL_DATA: return "nulldata";
+    case TxoutType::DEADPOOL_ENTRY: return "deadpool_entry";
+    case TxoutType::DEADPOOL_ANNOUNCE: return "deadpool_announce";
     case TxoutType::WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
@@ -186,6 +188,37 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         return TxoutType::NULL_DATA;
     }
 
+    // Deadpool entries:
+    //
+    // <semiprime> OP_CHECKDIVVERIFY OP_DROP OP_ANNOUNCEVERIFY OP_DROP OP_DROP OP_TRUE
+    //
+    // Note: to prevent a 1 input, 1 output transaction to be smaller than the
+    // 82-byte minimum, require at least 20 bytes of N in an entry for it
+    // to be considered "standard". This is not consensus critical but does
+    // influence mempool acceptance and relay.
+    if (scriptPubKey.size() >= 1 + 20 + 6 &&                        // minimum size + size(N) + 6 opcodes
+        scriptPubKey.size() <= 3 + MAX_SCRIPT_ELEMENT_SIZE + 6 &&   // maximum push + size(N) + 6 opcodes
+        scriptPubKey[scriptPubKey.size() - 1] == OP_TRUE &&
+        scriptPubKey[scriptPubKey.size() - 2] == OP_DROP &&
+        scriptPubKey[scriptPubKey.size() - 3] == OP_DROP &&
+        scriptPubKey[scriptPubKey.size() - 4] == OP_ANNOUNCEVERIFY &&
+        scriptPubKey[scriptPubKey.size() - 5] == OP_DROP &&
+        scriptPubKey[scriptPubKey.size() - 6] == OP_CHECKDIVVERIFY) {
+      auto pushSection = CScript(scriptPubKey.begin(), scriptPubKey.end()-6);
+      if (pushSection.IsPushOnly()) {
+          return TxoutType::DEADPOOL_ENTRY;
+      }
+      return TxoutType::NONSTANDARD;
+    }
+
+    // Announcements for deadpool entries
+    if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_ANNOUNCE) {
+      if (scriptPubKey.IsPushOnly(scriptPubKey.begin()+1) && scriptPubKey.size() <= 2 + MAX_SCRIPT_ELEMENT_SIZE + 32) {
+        return TxoutType::DEADPOOL_ANNOUNCE;
+      }
+      return TxoutType::NONSTANDARD;
+    }
+
     std::vector<unsigned char> data;
     if (MatchPayToPubkey(scriptPubKey, data)) {
         vSolutionsRet.push_back(std::move(data));
@@ -260,6 +293,8 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     }
     case TxoutType::MULTISIG:
     case TxoutType::NULL_DATA:
+    case TxoutType::DEADPOOL_ENTRY:
+    case TxoutType::DEADPOOL_ANNOUNCE:
     case TxoutType::NONSTANDARD:
         return false;
     } // no default case, so the compiler can warn about missing cases

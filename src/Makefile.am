@@ -145,6 +145,9 @@ BITCOIN_CORE_H = \
   core_memusage.h \
   cuckoocache.h \
   dbwrapper.h \
+  deadpool/announcedb.h \
+  deadpool/deadpool.h \
+  deadpool/index.h \
   deploymentinfo.h \
   deploymentstatus.h \
   external_signer.h \
@@ -156,6 +159,7 @@ BITCOIN_CORE_H = \
   index/base.h \
   index/blockfilterindex.h \
   index/coinstatsindex.h \
+  index/deadpoolindex.h \
   index/disktxpos.h \
   index/txindex.h \
   indirectmap.h \
@@ -329,6 +333,7 @@ libbitcoin_server_a_SOURCES = \
   blockfilter.cpp \
   chain.cpp \
   consensus/tx_verify.cpp \
+  deadpool/announcedb.cpp \
   dbwrapper.cpp \
   deploymentstatus.cpp \
   flatfile.cpp \
@@ -338,6 +343,7 @@ libbitcoin_server_a_SOURCES = \
   index/base.cpp \
   index/blockfilterindex.cpp \
   index/coinstatsindex.cpp \
+  index/deadpoolindex.cpp \
   index/txindex.cpp \
   init.cpp \
   mapport.cpp \
@@ -360,6 +366,7 @@ libbitcoin_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/deadpool.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
@@ -506,6 +513,8 @@ libbitcoin_consensus_a_SOURCES = \
   consensus/params.h \
   consensus/tx_check.cpp \
   consensus/validation.h \
+  deadpool/deadpool.cpp \
+  deadpool/deadpool.h \
   hash.cpp \
   hash.h \
   prevector.h \
@@ -515,6 +524,7 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/transaction.h \
   pubkey.cpp \
   pubkey.h \
+  script/bignum.h \
   script/bitcoinconsensus.cpp \
   script/interpreter.cpp \
   script/interpreter.h \

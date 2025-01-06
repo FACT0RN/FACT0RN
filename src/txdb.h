@@ -36,6 +36,8 @@ static const int64_t nMaxBlockDBCache = 2;
 static const int64_t nMaxTxIndexCache = 1024;
 //! Max memory allocated to all block filter index caches combined in MiB.
 static const int64_t max_filter_index_cache = 1024;
+//! Max memory allocated to the deadpool index cache in MiB.
+static const int64_t nMaxDeadpoolIndexCache = 64;
 //! Max memory allocated to coin DB specific cache (MiB)
 static const int64_t nMaxCoinsDBCache = 8;
 //!Default rate of checking pow on index load

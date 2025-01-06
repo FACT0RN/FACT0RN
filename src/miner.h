@@ -6,6 +6,7 @@
 #ifndef BITCOIN_MINER_H
 #define BITCOIN_MINER_H
 
+#include <deadpool/deadpool.h>
 #include <primitives/block.h>
 #include <txmempool.h>
 #include <validation.h>
@@ -47,6 +48,7 @@ struct CTxMemPoolModifiedEntry {
     int64_t GetModifiedFee() const { return iter->GetModifiedFee(); }
     uint64_t GetSizeWithAncestors() const { return nSizeWithAncestors; }
     CAmount GetModFeesWithAncestors() const { return nModFeesWithAncestors; }
+    CAmount GetBurnAmountWithAncestors() const { return nBurnAmountWithAncestors; }
     size_t GetTxSize() const { return iter->GetTxSize(); }
     const CTransaction& GetTx() const { return iter->GetTx(); }
 
@@ -54,6 +56,7 @@ struct CTxMemPoolModifiedEntry {
     uint64_t nSizeWithAncestors;
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
+    CAmount nBurnAmountWithAncestors;
 };
 
 /** Comparator for CTxMemPool::txiter objects.
@@ -100,7 +103,7 @@ typedef boost::multi_index_container<
             // Reuse same tag from CTxMemPool's similar index
             boost::multi_index::tag<ancestor_score>,
             boost::multi_index::identity<CTxMemPoolModifiedEntry>,
-            CompareTxMemPoolEntryByAncestorFee
+            CompareTxMemPoolEntryByAncestorBurnFee
         >
     >
 > indexed_modified_transaction_set;
@@ -140,6 +143,7 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
+    UniqueDeadpoolIds vIncludedAnnounces;
 
     // Chain context for the block
     int nHeight;

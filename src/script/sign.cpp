@@ -255,6 +255,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     switch (whichTypeRet) {
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
+    case TxoutType::DEADPOOL_ANNOUNCE:
     case TxoutType::WITNESS_UNKNOWN:
         return false;
     case TxoutType::PUBKEY:
@@ -320,7 +321,12 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
 
     case TxoutType::WITNESS_V1_TAPROOT:
         return SignTaproot(provider, creator, WitnessV1Taproot(XOnlyPubKey{vSolutions[0]}), sigdata, ret);
+
+    case TxoutType::DEADPOOL_ENTRY:
+        return false;  // TODO: enhance after index integration
+
     } // no default case, so the compiler can warn about missing cases
+
     assert(false);
 }
 

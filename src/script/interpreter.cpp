@@ -10,8 +10,8 @@
 #include <crypto/sha256.h>
 #include <pubkey.h>
 #include <script/script.h>
+#include <script/bignum.h>
 #include <uint256.h>
-#include <gmp.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -456,13 +456,13 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     int nOpCount = 0;
     bool fRequireMinimal = (flags & SCRIPT_VERIFY_MINIMALDATA) != 0;
     uint32_t opcode_pos = 0;
+    uint32_t OP_CHECKDIV_count = 0;
+
     execdata.m_codeseparator_pos = 0xFFFFFFFFUL;
     execdata.m_codeseparator_pos_init = true;
 
     try
     {
-
-        uint32_t OP_CHECKDIV_count = 0;
         for (; pc < pend; ++opcode_pos) {
             bool fExec = vfExec.all_true();
 
@@ -480,15 +480,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     return set_error(serror, SCRIPT_ERR_OP_COUNT);
                 }
             }
-
-            //Count OP_CHECKDIV appearances in this script.
-            if (opcode == OP_CHECKDIV)
-                OP_CHECKDIV_count++;
-
-            //Return error if OP_CHECKDIV appears more than once
-            if( OP_CHECKDIV_count > 1)
-                return set_error(serror, SCRIPT_ERR_OP_CHECKDIV);
-
 
             if (opcode == OP_CAT ||
                 opcode == OP_SUBSTR ||
@@ -628,64 +619,170 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                case OP_CHECKDIV:
+                case OP_CHECKDIVVERIFY:
                 {
                     // OPCODE: Check Divisor
                     //
-                    // Stack 
-                    //    P <- Top stack element
-                    //    N <- Second stack element
+                    // Stack
+                    //    N <- Top stack element
+                    //    P <- Second stack element
                     //
                     // Perform:
                     //    N Mod P -- return 1 if N Mod P == 0 else return 0
                     //
                     // Notes: Inputs are always interpreted as positive integers.
                     //
+                    //  Conditions: 1. N must not be zero.
+                    //              2. N must not be negative.
+                    //              3. P must not be 0.
+                    //              4. P must not be 1.
+                    //              5. P must not be equalt to N.
+                    //              6. P must not be negative.
+                    //
+                    //  Any inputs violating these conditions will result in an error.
+
+                    if (!(flags & SCRIPT_VERIFY_DEADPOOL)) {
+                        // not enabled; treat as OP_NOP10
+                        break;
+                    }
+
+                    OP_CHECKDIV_count++;
+                    if( OP_CHECKDIV_count > 1)
+                        return set_error(serror, SCRIPT_ERR_OP_CHECKDIVVERIFY_COUNT);
+
                     if (stack.size() < 2)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-                    //Retrieve P and do validation
-                    mpz_t p;
-                    mpz_init(p);
-                    mpz_import( p, stacktop(-1).size(), -1, sizeof(char), 0, 0, &(stacktop(-1)[0]) );
-
-                    //Check that p != 0
-                    if( mpz_cmp_ui( p, 0) == 0){
-                       mpz_clear(p);
+                    //Retrieve P and return error if P == 0, P == 1 or P is negative
+                    CScriptBignum p(stacktop(-2));
+                    if (!p.IsValid() || p == 0 || p == 1 || p.sign()) {
                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
                     }
 
-                    //Retrieve N
-                    mpz_t n;
-                    mpz_init(n);
-                    mpz_import( n, stacktop(-2).size(), -1, sizeof(char), 0, 0, &(stacktop(-2)[0]));
-
-                    //Perform operation
-                    mpz_t result;
-                    mpz_init(result);
-                    mpz_mod( result, n, p);
-
-                    //Clear GMP managed allocated memory
-                    mpz_clear(n);
-                    mpz_clear(p);
+                    //Retrieve N and return error if N == 0, N == P or N is negative
+                    CScriptBignum n(stacktop(-1));
+                    if (!n.IsValid() || n == 0 || n == p || n.sign()) {
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
 
                     //Check to see if p divides n, or equivalently that n Mod p == 0
-                    unsigned char retValue = (mpz_cmp_ui( result, 0 ) == 0);
+                    if (n % p != 0) {
+                        return set_error(serror, SCRIPT_ERR_UNSATISFIED_DIVISION_CHECK);
+                    }
 
-                    //Clear GMP managed allocated memory
-                    mpz_clear(result);
-
-                    //Update stack
-                    std::vector<unsigned char> ret (1, retValue);
-                    
-                    popstack(stack);
-                    popstack(stack);
-                    stack.push_back( ret );
                 }
                 break;
 
-                case OP_NOP4: case OP_NOP5:
-                case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
+                case OP_ANNOUNCE:
+                {
+
+                    if (!(flags & SCRIPT_VERIFY_DEADPOOL)) {
+                        // not enabled; treat as OP_RESERVED2
+                        return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
+                    }
+
+                    // OPCODE: ANNOUNCE
+                    //
+                    // ScriptSig:
+                    //    Claim Hash                      <- Top of stack element [32 bytes]
+                    //    N                               <- Second stack element [variable bytes]
+                    //
+                    //
+                    // Perform:
+                    //    1. Burns the coins associated with this transaction.
+                    //    2. Indexes the following data Indexer[N] = [ Height, Coins Burned, Claim Hash]
+                    //    3. Per height, per N, there is only one entry: the highest Coins Burned announcement wins.
+                    //    4. Miners may choose to break ties as they see fit.
+                    //
+                    // Note 1: Claim Hash = sha256( T || Serialize(vout-of-claim-txn) )
+                    //         Where T is a non-trivial divisor of N. (T need not be prime )
+                    //            and the symbol || means byte concatenation.
+                    //
+                    // Note 2: This OPCODE's purpose, in conjuction with OP_ANNOUNCEVERIFY, is to protect
+                    //         the claimant against miner-in-the-middle attacks, protect the blockchain against
+                    //         DoS attacks, stabilize the coin supply by burning coins in proportion to the utility
+                    //         of the coin, and to place restrictions such that it becomes prohibitively expensive to block
+                    //         participants who have found a solution from claiming a solution fro an extended periof of time.
+                    //
+                    // Note 3:  1) This op code is to announce a solution has been found to a number with a bounty.
+                    //            1.a) You MUST use OP_ANNOUNCEVERIFY to claim the bounty and provide the actual solution.
+                    //            1.b) You MUST wait 100 blocks. Any attempts made before 100 blocks will be rejected by blockchain.
+                    //            1.c) You MUST claim before 672 blocks have passed. Announcement will be forgotten after this point.
+                    //          2) This op code will be executed with the following priority at redemption time by OP_ANNOUNCEVERIFY:
+                    //            2.a Announcements in blocks earlier than 672 blocks ago are not considered at all.
+                    //            2.b Announcements in blocks later   than 100 blocks ago are not considered at all.
+                    //            2.c Announcements in ealier blocks are considered first.
+                    //
+                    //          In short, there may only be one announcement considered per block.
+                    //
+
+                    // Announcements cannot be spent - it acts like an OP_RETURN, burning the coins
+                    return set_error(serror, SCRIPT_ERR_OP_RETURN);
+
+                }
+                break;
+
+                case OP_ANNOUNCEVERIFY:
+                {
+
+                    if (!(flags & SCRIPT_VERIFY_DEADPOOL)) {
+                        // not enabled; treat as OP_NOP9
+                        break;
+                    }
+
+                    // OPCODE: ANNOUNCEVERIFY
+                    //
+                    // Stack:
+                    //    T            <- First stack element [ Limited by Script Restriction to 512 bytes (  0 <= T < 2^4096) ]
+                    //    Claim Hash   <- Second stack element [32 bytes]
+                    //
+                    //  Note 1: The following script checks are done intrinsically here:
+                    //              1) SHA256( SHA256(T) || SHA256(scriptPubKey) ) == Claim Hash
+                    //              2) Check that there is only 1 txout (claimer)
+                    //
+                    //  Note 2: The following checks are done at transaction validation time:
+                    //              1) Check that Claim-hash exists in the deadpool index.
+                    //              2) Is this txn after 100 blocks of the announcement?
+                    //              3) Is this txn before 672 blocks of the announcement?
+                    //
+                    //
+                    //  Note 3: The full ScriptPubKey + ScripSig should look like this with intended use:
+                    //
+                    //          Claim-Hash     |                         < this remains after OP_VERIFY
+                    //          T              |  Scriptsig              < this remains after OP_VERIFY
+                    //
+                    //          ---------------------------------------------------------------------------
+                    //
+                    //          N                     |                      < this got popped by OP_CHECKDIV
+                    //          OP_CHECKDIV           | ScriptPubKey         < this got executed, adds result to stack
+                    //          OP_VERIFY             |                      < this got executed (pops result of OP_CHECKDIV)
+                    //          OP_ANNOUNCE_VERIFY    |
+                    //
+                    if (stack.size() < 2) {
+                        return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
+                    }
+
+                    //Retrieve T and Claim-Hash
+                    valtype& t = stacktop(-1);
+                    valtype& claimHash = stacktop(-2);
+
+                    //Check that the claim hash has the exact number of bytes expected
+                    if (claimHash.size() != 32)
+                        return set_error(serror, SCRIPT_ERR_INVALID_CLAIMHASH_SIZE );
+
+                    // Hash T
+                    valtype vchTHash(32);
+                    CSHA256().Write(t.data(), t.size()).Finalize(vchTHash.data());
+
+                    // Check if the output's scriptPubKey actually hashes into claimhash
+                    // when concatenated with the hash of T
+                    if (!checker.CheckClaimer(claimHash, vchTHash)) {
+                        return set_error(serror, SCRIPT_ERR_INVALID_CLAIMHASH);
+                    }
+                }
+                break;
+
+                case OP_NOP1: case OP_NOP4: case OP_NOP5: case OP_NOP6: case OP_NOP7: case OP_NOP8:
                 {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
                         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
@@ -1869,6 +1966,31 @@ bool GenericTransactionSignatureChecker<T>::CheckSequence(const CScriptNum& nSeq
         return false;
 
     return true;
+}
+
+template <class T>
+bool GenericTransactionSignatureChecker<T>::CheckClaimer(const std::vector<unsigned char>& claimHash, const std::vector<unsigned char>& pHash) const
+{
+    // check inputs
+    if (claimHash.size() != 32 || pHash.size() != 32) {
+        return false;
+    }
+
+    // deadpool claim transactions must have exactly 1 output
+    if (txTo->vout.size() != 1) {
+      return false;
+    }
+
+    // Hash the scriptPubkey of the first (and only) output
+    valtype txToOutScriptHash(32);
+    CSHA256().Write(txTo->vout[0].scriptPubKey.data(), txTo->vout[0].scriptPubKey.size()).Finalize(txToOutScriptHash.data());
+
+    // hash the concatenated data
+    valtype vchHash(32);
+    CSHA256().Write(pHash.data(), pHash.size()).Write(txToOutScriptHash.data(), txToOutScriptHash.size()).Finalize(vchHash.data());
+
+    // if our hash matches the given hash, we're good.
+    return vchHash == claimHash;
 }
 
 // explicit instantiation

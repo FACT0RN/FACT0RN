@@ -28,6 +28,7 @@ constexpr bool ValidDeployment(BuriedDeployment dep) { return dep <= DEPLOYMENT_
 
 enum DeploymentPos : uint16_t {
     DEPLOYMENT_TESTDUMMY,
+    DEPLOYMENT_DEADPOOL,
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in deploymentinfo.cpp
     MAX_VERSION_BITS_DEPLOYMENTS
 };
@@ -115,6 +116,17 @@ struct Params {
 
     //Number of rounds for gHash to generate random Ws around which to search for semiprimes.
     uint32_t hashRounds;
+
+    //// deadpool parameters ////
+
+    //! The number of blocks a deadpool announcement needs to mature
+    uint16_t nDeadpoolAnnounceMaturity;
+    //! The number of blocks a deadpool announcement is valid for
+    uint16_t nDeadpoolAnnounceValidity;
+    //! The minimum amount to burn on an announcement
+    int64_t nDeadpoolAnnounceMinBurn;
+
+    int64_t DeadpoolAnnounceMaxAge() const { return nDeadpoolAnnounceMaturity + nDeadpoolAnnounceValidity; }
 
     /**
      * If true, witness commitments contain a payload equal to a Bitcoin Script solution

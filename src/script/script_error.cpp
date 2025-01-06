@@ -115,8 +115,16 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Using OP_CODESEPARATOR in non-witness script";
         case SCRIPT_ERR_SIG_FINDANDDELETE:
             return "Signature is found in scriptCode";
-        case SCRIPT_ERR_OP_CHECKDIV:
-            return "Only one OP_CHECKDIV is allowed per script.";
+        case SCRIPT_ERR_OP_CHECKDIVVERIFY_COUNT:
+            return "Only one OP_CHECKDIVVERIFY is allowed per script.";
+        case SCRIPT_ERR_INVALID_CLAIMHASH_SIZE:
+            return "OP_ANNOUNCEVERIFY Claim-Hash argument MUST be 32 bytes";
+        case SCRIPT_ERR_INVALID_CLAIMHASH:
+            return "OP_ANNOUNCEVERIFY Claim-Hash does not match solution * outscript";
+        case SCRIPT_ERR_UNSATISFIED_DIVISION_CHECK:
+            return "OP_CHECKDIVVERIFY Division invalid";
+        case SCRIPT_ERR_OP_ANNOUNCE:
+            return "OP_ANNOUNCE was encountered";
         case SCRIPT_ERR_UNKNOWN_ERROR:
         case SCRIPT_ERR_ERROR_COUNT:
         default: break;
