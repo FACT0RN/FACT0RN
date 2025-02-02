@@ -231,6 +231,9 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
 // - duplicate announcement deadpool ids
 bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& package) const
 {
+    // Track announcements within this package
+    UniqueDeadpoolIds packageAnnounces;
+
     for (CTxMemPool::txiter it : package) {
         if (!IsFinalTx(it->GetTx(), nHeight, nLockTimeCutoff))
             return false;
@@ -239,10 +242,19 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
 
         if (it->HasAnnounces()) {
             for (uint256 deadpoolId : it->GetAnnounces()) {
+                // Check against already included announcements
                 auto searchAnn = vIncludedAnnounces.find(deadpoolId);
                 if (searchAnn != vIncludedAnnounces.end()) {
                     return false;
                 }
+
+                // Check against other transactions in this package
+                auto searchPackage = packageAnnounces.find(deadpoolId);
+                if (searchPackage != packageAnnounces.end()) {
+                    return false;
+                }
+
+                packageAnnounces.insert(deadpoolId);
             }
         }
     }
