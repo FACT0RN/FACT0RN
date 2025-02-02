@@ -412,7 +412,7 @@ public:
         double a_mod_fee, a_size, b_mod_fee, b_size;
 
         CAmount a_burned = a.GetBurnAmountWithAncestors();
-        CAmount b_burned = a.GetBurnAmountWithAncestors();
+        CAmount b_burned = b.GetBurnAmountWithAncestors();
 
         if (a_burned != b_burned) {
             return a_burned > b_burned;
